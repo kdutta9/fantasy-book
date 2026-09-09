@@ -19,6 +19,28 @@ const PLAYOFF_ROUNDS = 3; // weeks 15, 16, 17
 // describes exactly one standard six-team bracket — top two seeds bye, 4/5
 // winner meets the 1 seed, 3/6 winner meets the 2 seed, no re-seeding — and
 // `assertBracketShape` fails loudly if the committed structure stops agreeing.
+// The consolation ladder is whatever seats missed the playoffs, and its size is a
+// property of the league rather than a constant: twelve teams leave six behind,
+// ten leave four. Sleeper publishes both shapes (a 7-match/3-round losers bracket
+// for the first, 4-match/2-round for the second), so both are implemented
+// explicitly and anything else fails loudly. Its last slot is the league's last
+// place, which is what the season punishment settles on (§6.3).
+const CONSOLATION = {
+  6: { matches: 7, rounds: 3, places: "1,3,5" },
+  4: { matches: 4, rounds: 2, places: "1,3" },
+};
+
+export function assertConsolationShape(bracket, seats) {
+  const spec = CONSOLATION[seats];
+  if (!spec) throw new Error(`No consolation bracket implemented for ${seats} seats out of the playoffs`);
+  const rounds = new Set(bracket.map((m) => m.r));
+  const places = bracket.filter((m) => m.p).map((m) => m.p).sort((a, b) => a - b);
+  if (bracket.length !== spec.matches || rounds.size !== spec.rounds || places.join() !== spec.places)
+    throw new Error(
+      `Committed consolation bracket is not the ${spec.matches}-match / ${spec.rounds}-round / places-${spec.places} shape for ${seats} seats`
+    );
+}
+
 export function assertBracketShape(bracket, playoffTeams) {
   if (playoffTeams !== 6) throw new Error(`Only the six-team bracket is implemented; this league has ${playoffTeams}`);
   const rounds = new Set(bracket.map((m) => m.r));
@@ -32,6 +54,20 @@ export function assertBracketShape(bracket, playoffTeams) {
 // The consolation ladder runs the identical shape over the six seeds that
 // missed, so its last slot is the league's last place — which is what THE BUS
 // STOP settles on (§6.3).
+// Four seats: 1v4 and 2v3, then winners for the top slot and losers for the
+// bottom one — the shape Sleeper's own four-team losers bracket describes.
+function playFour(seeds, rounds) {
+  const beats = (round, a, b) => (rounds[round][a] >= rounds[round][b] ? [a, b] : [b, a]);
+  const [w14, l14] = beats(0, seeds[0], seeds[3]);
+  const [w23, l23] = beats(0, seeds[1], seeds[2]);
+  const [first, second] = beats(1, w14, w23);
+  const [third, fourth] = beats(1, l14, l23);
+  return [first, second, third, fourth];
+}
+
+const playLadder = (seeds, rounds) =>
+  seeds.length === 6 ? playBracket(seeds, rounds) : playFour(seeds, rounds);
+
 function playBracket(seeds, rounds) {
   const beats = (round, a, b) => (rounds[round][a] >= rounds[round][b] ? [a, b] : [b, a]);
   const [w36, l36] = beats(0, seeds[2], seeds[5]);
@@ -59,6 +95,7 @@ export function simulateSeason({
   seed,
 }) {
   assertBracketShape(bracket.winners, playoffTeams);
+  assertConsolationShape(bracket.losers, rosterIds.length - playoffTeams);
   const rng = mulberry32(seed);
   const n = rosterIds.length;
   const at = new Map(rosterIds.map((id, i) => [id, i]));
@@ -119,7 +156,7 @@ export function simulateSeason({
     for (let r = 0; r < PLAYOFF_ROUNDS; r++) for (let t = 0; t < n; t++) playoffRounds[r][t] = drawTeam(form[t], rng);
     const finish = [
       ...playBracket([...order.slice(0, 6)], playoffRounds),
-      ...playBracket([...order.slice(6)], playoffRounds),
+      ...playLadder([...order.slice(6)], playoffRounds),
     ];
 
     for (let p = 0; p < finish.length; p++) acc.place[finish[p]][p + 1]++;

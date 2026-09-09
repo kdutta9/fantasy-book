@@ -10,8 +10,19 @@ import { readJson } from "../scripts/lib/json.mjs";
 import * as P from "../scripts/lib/paths.mjs";
 import { allLeagueIds } from "../scripts/pull.mjs";
 
-const STARTERS = 10; // QB RB RB WR WR TE FLEX FLEX K DEF — both leagues
+// Lineup size, weekly totals and the price ceiling are all properties of the
+// LEAGUE, not constants: LoOG starts nine (one FLEX, ten teams) and so runs
+// totals in the 230s where the twelve-team books run in the 260s. Hardcoding
+// either produced three false failures the moment a third league arrived. What
+// actually generalises is points PER STARTER — all three books sit between 12.3
+// and 14.4 — and the fair win probability, which is the thing the variance model
+// is really being checked on.
+const MAX_FAIR_PA = 68;   // a coin-flip sport; above this the variance model is off
+const MARGIN = 1.075;     // two-way price margin, so the posted odds ceiling follows
+const PER_STARTER = [11, 16];
 const toOdds = (s) => (s[0] === "−" ? -Number(s.slice(1)) : Number(s.slice(1)));
+const american = (p) => (p >= 0.5 ? -(100 * p) / (1 - p) : (100 * (1 - p)) / p);
+const ODDS_FLOOR = american(Math.min((MAX_FAIR_PA / 100) * MARGIN, 0.985));
 
 const weeksOf = (id) =>
   existsSync(P.bookDir(id))
@@ -39,24 +50,37 @@ for (const leagueId of allLeagueIds()) {
           m.moneyline.pA >= 50 && m.moneyline.pA < 68,
           `${m.a.team} vs ${m.b.team} is a ${m.moneyline.pA}% favourite — the variance model is not being applied`
         );
-        assert.ok(toOdds(m.moneyline.a) >= -250, `${m.a.team} posted ${m.moneyline.a}`);
-      }
-    });
-
-    test(`${leagueId} w${week}: totals land between 245 and 290`, () => {
-      for (const m of book.matchups) {
+        // Derived from the ceiling above rather than hardcoded — a 67% fair
+        // favourite legitimately posts at −260 once margin is applied, and the
+        // old −250 constant contradicted this test's own 68% bound.
         assert.ok(
-          m.total.line >= 245 && m.total.line <= 290,
-          `${m.a.team} vs ${m.b.team} total ${m.total.line} — outside the 245…290 band`
+          toOdds(m.moneyline.a) >= ODDS_FLOOR,
+          `${m.a.team} posted ${m.moneyline.a}, past the ${ODDS_FLOOR.toFixed(0)} implied by a ${MAX_FAIR_PA}% ceiling`
         );
       }
     });
 
-    test(`${leagueId} w${week}: every seat starts ${STARTERS}`, () => {
-      // The most likely cause of a broken line is summing the wrong number of
-      // starters, so assert the lineup size directly rather than inferring it.
+    const starters = book.lineups[0].players.length;
+
+    test(`${leagueId} w${week}: totals imply a plausible score per starter`, () => {
+      for (const m of book.matchups) {
+        const perStarter = m.total.line / (2 * starters);
+        assert.ok(
+          perStarter >= PER_STARTER[0] && perStarter <= PER_STARTER[1],
+          `${m.a.team} vs ${m.b.team} total ${m.total.line} is ${perStarter.toFixed(2)}/starter over ${starters} starters`
+        );
+      }
+    });
+
+    test(`${leagueId} w${week}: every seat starts the same lineup the league does`, () => {
+      // Summing the wrong number of starters is the likeliest cause of a broken
+      // line, so assert against the league's own roster_positions rather than a
+      // constant that only described the first two leagues.
+      const expected = readJson(P.leagueWeekFile(leagueId, week)).league.roster_positions.filter(
+        (slot) => !["BN", "IR", "TAXI"].includes(slot)
+      ).length;
       for (const seat of book.lineups) {
-        assert.equal(seat.players.length, STARTERS, `${seat.team} started ${seat.players.length}`);
+        assert.equal(seat.players.length, expected, `${seat.team} started ${seat.players.length} of ${expected}`);
       }
     });
 

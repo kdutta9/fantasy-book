@@ -12,7 +12,18 @@ real board off live data.
 
 ---
 
-## 0. The two leagues (verified 2026-09-09)
+## 0. The leagues (verified 2026-09-09; LoOG added week 1)
+
+A third league — **League of Ordinary Gentlemen** (`loog`, `1391548738874413056`) — was
+onboarded on 2026-09-09. It is 10 teams / 9 starters / 147 custom scoring keys, pays three
+places off a $50 buy-in, has a **4-seat consolation bracket** rather than 6, and carries no
+lore by request. Adding it forced three generalisations that should have been there from
+the start: `season.mjs` now implements both consolation shapes, `test/lines.test.mjs`
+derives its bands per league instead of hardcoding a 12-team/10-starter one, and
+`pull.mjs` refuses to overwrite a posted week's projections. It is not on the Crossover —
+only kdutta overlaps the other two.
+
+## 0a. The original two leagues
 
 Season 2026, week 1, `season_start_date: 2026-09-09`.
 

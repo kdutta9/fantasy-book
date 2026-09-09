@@ -34,7 +34,8 @@
     ],
     "playoffWeekStart": 15,
     "playoffTeams": 6,
-    "tradeDeadline": 11
+    "tradeDeadline": 11,
+    "scoringMatchesSleeperPPR": true
   },
   "stakes": {
     "buyIn": 50,

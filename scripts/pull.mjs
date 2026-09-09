@@ -26,7 +26,7 @@ export const allLeagueIds = () =>
     .map((f) => basename(f, ".json"))
     .sort();
 
-export async function pull({ leagueIds, week, season, refreshSchedule = false, log = console.log }) {
+export async function pull({ leagueIds, week, season, refreshSchedule = false, forceProjections = false, log = console.log }) {
   const pulledAt = new Date().toISOString();
 
   // Every league's settings are fetched, not just the ones being pulled: the
@@ -39,7 +39,7 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, l
   const settings = {};
   for (const id of everyId) settings[id] = await sleeper.fetchLeague(configs[id].sleeperLeagueId);
 
-  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), log });
+  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), forceProjections, log });
   const playersDate = await pullPlayers({ leagueIds: everyId, configs, projected, log });
 
   for (const id of leagueIds) {
@@ -50,8 +50,25 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, l
   return { season, week, playersDate, pulledAt };
 }
 
-async function pullProjections({ season, week, keys, log }) {
+// Projections for a week are frozen the moment that week's sheet is posted.
+// Sleeper's numbers move continuously, so re-pulling a posted week would change
+// the inputs underneath a committed sheet and check-frozen would (correctly)
+// start failing — the same hazard the schedule and players writes are already
+// guarded against. Re-running refresh mid-week, or onboarding a new league, must
+// not reprice a book that is already live. Pass --force-projections only when you
+// genuinely intend to move a posted week's inputs.
+function projectionsAreFrozen(season, week, forceProjections) {
+  if (forceProjections) return false;
+  if (!existsSync(P.projFile(season, week))) return false;
+  return readdirSync(P.booksRoot).some((id) => existsSync(P.bookFile(id, week)));
+}
+
+async function pullProjections({ season, week, keys, forceProjections, log }) {
   // K and DEF come on their own call and are REQUIRED — both leagues start both.
+  if (projectionsAreFrozen(season, week, forceProjections)) {
+    log(`projections ${season} w${week}: already posted — left untouched (--force-projections to override)`);
+    return Object.keys(readJson(P.projFile(season, week)));
+  }
   const [skill, kicking] = await Promise.all([
     sleeper.fetchProjections(season, week, ["QB", "RB", "WR", "TE"]),
     sleeper.fetchProjections(season, week, ["K", "DEF"]),
@@ -178,6 +195,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const season = option("--season", state.season);
   const only = option("--league", null);
   const leagueIds = only ? only.split(",") : allLeagueIds();
-  await pull({ leagueIds, week, season, refreshSchedule: flag("--refresh-schedule") });
+  await pull({ leagueIds, week, season, refreshSchedule: flag("--refresh-schedule"), forceProjections: flag("--force-projections") });
   console.log(`\nPulled ${season} week ${week} for ${leagueIds.join(", ")}.`);
 }

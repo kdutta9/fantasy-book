@@ -1,0 +1,149 @@
+{
+  "id": "loog",
+  "sleeperLeagueId": "1391548738874413056",
+  "displayName": "League of Ordinary Gentlemen",
+  "bookName": "THE ORDINARY GENTLEMEN",
+  "tagline": "Official betting partner of the League of Ordinary Gentlemen",
+  "leagueType": "keeper",
+  "maxKeepers": 2,
+  "_verified": {
+    "date": "2026-09-09",
+    "teams": 10,
+    "scoringKeys": 147,
+    "rosterPositions": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+      "K",
+      "DEF",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN"
+    ],
+    "playoffWeekStart": 15,
+    "playoffTeams": 6,
+    "tradeDeadline": 14,
+    "scoringMatchesSleeperPPR": false
+  },
+  "stakes": {
+    "buyIn": 50,
+    "teams": 10,
+    "pot": 500,
+    "structure": "places-1-through-3-pay",
+    "payouts": [
+      {
+        "place": 1,
+        "amount": 350,
+        "label": "$350",
+        "note": null
+      },
+      {
+        "place": 2,
+        "amount": 100,
+        "label": "$100",
+        "note": null
+      },
+      {
+        "place": 3,
+        "amount": 50,
+        "label": "$50",
+        "note": "buy-in back"
+      }
+    ]
+  },
+  "punishment": {
+    "season": {
+      "name": "LAST PLACE",
+      "market": "lastPlace",
+      "copy": "Tenth. Settled on the consolation bracket rather than on record, so a bad team that wins one game in week 15 climbs out of it."
+    },
+    "weekly": {
+      "name": "LOW SCORER OF THE WEEK",
+      "market": "weeklyLowScorer",
+      "copy": "Fewest points in the league in a given week. No forfeit attached — this one is just the number."
+    }
+  },
+  "lore": {
+    "rivalries": [],
+    "runningBits": [],
+    "notes": "Deliberately empty. This league runs on the numbers alone — no punishment lore, no authored specials. Generated boards still ship every week."
+  },
+  "seats": [
+    {
+      "rosterId": 1,
+      "manager": "rbrodskiy",
+      "teamName": "Easy Breece-y",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 2,
+      "manager": "shayaz",
+      "teamName": "Step Brockers",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 3,
+      "manager": "tazioer",
+      "teamName": "McLovin",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 4,
+      "manager": "Zregi4",
+      "teamName": null,
+      "nameOverride": null
+    },
+    {
+      "rosterId": 5,
+      "manager": "aruni3",
+      "teamName": null,
+      "nameOverride": null
+    },
+    {
+      "rosterId": 6,
+      "manager": "tushawarma",
+      "teamName": "❄️",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 7,
+      "manager": "jirish42",
+      "teamName": "Jahmyracle on Ice",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 8,
+      "manager": "kdutta",
+      "teamName": null,
+      "nameOverride": null
+    },
+    {
+      "rosterId": 9,
+      "manager": "MattGar0124",
+      "teamName": "The Warren Ukraine",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 10,
+      "manager": "bmilgram",
+      "teamName": null,
+      "nameOverride": null
+    }
+  ],
+  "preview": {
+    "writtenWeek": 1,
+    "standfirst": "Ten seats, five hundred dollars, three of them paid. Sixth season, two keepers a side, and the flattest board of the three books.",
+    "paragraphs": [
+      "In an even ten-team league every seat would hold a 10% title chance. The favourite here opens at 15.9%, the longest price at 7.0% — a 2.3× spread between the best and worst rosters. The same model priced Nick's at 3.4× and DKEnasty at 6.5× on the same afternoon, so this is comfortably the tightest of the three. The likeliest reason is simply that ten teams share the player pool that the other two spread across twelve: every roster here is deeper, and depth is what compresses the gap between the top and the bottom of a league. Six of ten make the playoffs, which means more than half the field is in, and on these numbers no seat is below a 50% shot at that.",
+      "Fifty dollars in, three places out: $350, $100, and the buy-in back for third. Nine starters rather than ten puts weekly totals in the 234–252 range, a little under the other two books. The one genuinely lopsided line on the card is Jahmyracle on Ice at −260 over bmilgram, a 14.2-point projection gap that comes out at 67.2% once the vig is stripped — the largest edge on any of the three sheets this week. Last place is settled on the consolation bracket rather than on record, so a bad team that wins a single game in week 15 climbs straight out of it."
+    ]
+  }
+}
