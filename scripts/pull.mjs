@@ -1,0 +1,183 @@
+#!/usr/bin/env node
+// Snapshot Sleeper into committed inputs (DESIGN.md §4.2). Sleeper's projections
+// mutate continuously, so a builder that fetched at build time would mean no
+// sheet ever rebuilds identically and check-frozen could not exist. This is the
+// single most important architectural rule in the project (CLAUDE.md trap 3).
+//
+//   npm run pull                       # current week from /v1/state/nfl, all leagues
+//   npm run pull -- --week 6           # a specific week
+//   npm run pull -- --league nicks     # one league (projections are still shared)
+//   npm run pull -- --refresh-schedule # re-pull the season-long schedule/bracket
+
+import { existsSync, readdirSync } from "node:fs";
+import { basename } from "node:path";
+import { readJson, writeJson } from "./lib/json.mjs";
+import * as P from "./lib/paths.mjs";
+import * as sleeper from "./lib/sleeper.mjs";
+import { scoringKeyUnion, slimPlayers, slimProjections } from "./lib/slim.mjs";
+import { flag, option } from "./lib/args.mjs";
+
+const REGULAR_SEASON_WEEKS = 14; // weeks 15-17 return rows but are NOT the bracket (§3.2)
+
+
+export const allLeagueIds = () =>
+  readdirSync(P.configPath("leagues"))
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => basename(f, ".json"))
+    .sort();
+
+export async function pull({ leagueIds, week, season, refreshSchedule = false, log = console.log }) {
+  const pulledAt = new Date().toISOString();
+
+  // Every league's settings are fetched, not just the ones being pulled: the
+  // projection slim keeps the UNION of all leagues' scoring keys, and that union
+  // must not depend on which leagues you happened to pull. Otherwise
+  // `--league nicks` would write a narrower projections file and DKEnasty's
+  // committed weeks would stop rebuilding.
+  const everyId = allLeagueIds();
+  const configs = Object.fromEntries(everyId.map((id) => [id, readJson(P.leagueConfigPath(id))]));
+  const settings = {};
+  for (const id of everyId) settings[id] = await sleeper.fetchLeague(configs[id].sleeperLeagueId);
+
+  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), log });
+  const playersDate = await pullPlayers({ leagueIds: everyId, configs, projected, log });
+
+  for (const id of leagueIds) {
+    await pullLeagueWeek({ id, config: configs[id], league: settings[id], week, season, playersDate, pulledAt, refreshSchedule, log });
+  }
+
+  writeJson(P.statePath, { season, week, pulledAt, leagues: leagueIds });
+  return { season, week, playersDate, pulledAt };
+}
+
+async function pullProjections({ season, week, keys, log }) {
+  // K and DEF come on their own call and are REQUIRED — both leagues start both.
+  const [skill, kicking] = await Promise.all([
+    sleeper.fetchProjections(season, week, ["QB", "RB", "WR", "TE"]),
+    sleeper.fetchProjections(season, week, ["K", "DEF"]),
+  ]);
+  // The K/DEF call includes punters; a league scores what it scores, but a P has
+  // no lineup slot and would only ever be dead weight in the file.
+  const rows = [...skill, ...kicking.filter((r) => r.player?.position !== "P")];
+  const slim = slimProjections(rows, keys);
+  log(`projections ${season} w${week}: ${rows.length} rows → ${Object.keys(slim).length} players, ${keys.length} scoring keys`);
+  writeJson(P.projFile(season, week), slim);
+
+  const seasonRows = await sleeper.fetchSeasonProjections(season, sleeper.SCORING_POSITIONS);
+  writeJson(P.seasonProjFile(season), slimProjections(seasonRows, keys));
+  return Object.keys(slim);
+}
+
+async function pullPlayers({ leagueIds, configs, projected, log }) {
+  const date = new Date().toISOString().slice(0, 10);
+  if (existsSync(P.playersFile(date))) {
+    log(`players ${date}: cached`);
+    return date;
+  }
+  const [players, ...rosterSets] = await Promise.all([
+    sleeper.fetchPlayers(),
+    ...leagueIds.map((id) => sleeper.fetchRosters(configs[id].sleeperLeagueId)),
+  ]);
+  // Rostered players plus anyone carrying a projection this week, so a waiver
+  // pickup still renders and the projection file never points at a missing name.
+  const wanted = new Set([...rosterSets.flatMap((rs) => rs.flatMap((r) => r.players ?? [])), ...projected]);
+  const slim = slimPlayers(players, wanted);
+  log(`players ${date}: ${Object.keys(players).length} → ${Object.keys(slim).length}`);
+  writeJson(P.playersFile(date), slim);
+  return date;
+}
+
+async function pullLeagueWeek({ id, config, league, week, season, playersDate, pulledAt, refreshSchedule, log }) {
+  const sleeperId = config.sleeperLeagueId;
+
+  // The schedule and bracket are season-long constants. Re-pulling them every
+  // week would put a committed input under a live endpoint's control, and a
+  // silent change there would break every already-posted sheet's rebuild.
+  if (refreshSchedule || !existsSync(P.leagueFile(id, "schedule"))) {
+    const weeks = await Promise.all(
+      Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => sleeper.fetchMatchups(sleeperId, i + 1))
+    );
+    writeJson(P.leagueFile(id, "schedule"), {
+      season,
+      weeks: Object.fromEntries(weeks.map((rows, i) => [i + 1, pairings(rows)])),
+    });
+    const [winners, losers] = await Promise.all([
+      sleeper.fetchBracket(sleeperId, "winners"),
+      sleeper.fetchBracket(sleeperId, "losers"),
+    ]);
+    // STRUCTURE only. At week 1 these are already populated with seeds that
+    // cannot be real; seed from simulated standings instead (§3.2).
+    const structure = (b) => b.map(({ m, r, t1_from, t2_from, p }) => ({ m, r, t1_from, t2_from, p }));
+    writeJson(P.leagueFile(id, "bracket"), { winners: structure(winners), losers: structure(losers) });
+    log(`${id}: schedule (weeks 1-${REGULAR_SEASON_WEEKS}) + bracket structure`);
+  }
+
+  const [users, rosters, matchups] = await Promise.all([
+    sleeper.fetchUsers(sleeperId),
+    sleeper.fetchRosters(sleeperId),
+    sleeper.fetchMatchups(sleeperId, week),
+  ]);
+
+  // One file is the complete league-side input for one sheet — league settings
+  // included, so a mid-season scoring change cannot retroactively reprice an
+  // already-posted week.
+  writeJson(P.leagueWeekFile(id, week), {
+    id,
+    season,
+    week,
+    pulledAt,
+    playersDate,
+    league: {
+      name: league.name,
+      scoring_settings: league.scoring_settings,
+      roster_positions: league.roster_positions,
+      settings: league.settings,
+    },
+    users: users
+      // Deliberately NOT carrying metadata.team_name. Display names live in
+      // config/leagues/<id>.json — the only human-edited file — where they can be
+      // overridden; add-league.mjs seeds them from Sleeper at onboarding. Mirroring
+      // them here re-imported the upstream string into a committed file on every
+      // weekly pull, which is how a name a human had already overruled kept coming
+      // back. The pull carries rosters, points and schedule; not names.
+      .map((u) => ({ user_id: u.user_id, display_name: u.display_name }))
+      .sort((a, b) => a.user_id.localeCompare(b.user_id)),
+    rosters: rosters
+      .map((r) => ({
+        roster_id: r.roster_id,
+        owner_id: r.owner_id,
+        players: [...(r.players ?? [])].sort(),
+        starters: r.starters ?? [],
+        reserve: [...(r.reserve ?? [])].sort(),
+        taxi: [...(r.taxi ?? [])].sort(),
+        settings: r.settings,
+      }))
+      .sort((a, b) => a.roster_id - b.roster_id),
+    matchups: pairings(matchups),
+  });
+  log(`${id}: week ${week} rosters + matchups`);
+}
+
+// [{roster_id, matchup_id}] → [[a, b], ...], sorted, so the committed schedule
+// does not depend on Sleeper's row order.
+const pairings = (rows) => {
+  const byMatchup = new Map();
+  for (const row of rows) {
+    if (row.matchup_id == null) continue;
+    if (!byMatchup.has(row.matchup_id)) byMatchup.set(row.matchup_id, []);
+    byMatchup.get(row.matchup_id).push(row.roster_id);
+  }
+  return [...byMatchup]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, ids]) => [...ids].sort((a, b) => a - b));
+};
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const state = await sleeper.fetchState();
+  const week = Number(option("--week", state.week));
+  const season = option("--season", state.season);
+  const only = option("--league", null);
+  const leagueIds = only ? only.split(",") : allLeagueIds();
+  await pull({ leagueIds, week, season, refreshSchedule: flag("--refresh-schedule") });
+  console.log(`\nPulled ${season} week ${week} for ${leagueIds.join(", ")}.`);
+}

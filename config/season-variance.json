@@ -1,0 +1,31 @@
+{
+  "_comment": "cv of a per-player season multiplier m ~ LogNormal(median 1), drawn once per simulated season and applied to every week after the one being previewed. Fitted by removing the weekly-noise share from observed season-total dispersion. Regenerate with scripts/calibrate-season.mjs --write; re-fit at most once per season, never mid-season.",
+  "_fitted": "2026-09-09",
+  "_source": "api.sleeper.com season projections vs summed weekly stats, 2025 weeks 1-14, top {\"QB\":40,\"RB\":60,\"WR\":72,\"TE\":36,\"K\":32,\"DEF\":32} by projection",
+  "positions": {
+    "QB": {
+      "cv": 0.364,
+      "n": 40
+    },
+    "RB": {
+      "cv": 0.422,
+      "n": 60
+    },
+    "WR": {
+      "cv": 0.367,
+      "n": 72
+    },
+    "TE": {
+      "cv": 0.292,
+      "n": 36
+    },
+    "K": {
+      "cv": 0.48,
+      "n": 32
+    },
+    "DEF": {
+      "cv": 0.355,
+      "n": 32
+    }
+  }
+}

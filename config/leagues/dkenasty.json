@@ -1,0 +1,165 @@
+{
+  "id": "dkenasty",
+  "sleeperLeagueId": "1312065600469606400",
+  "displayName": "DKEnasty",
+  "bookName": "DKENASTY SPORTSBOOK",
+  "tagline": "Official betting partner of DKEnasty",
+  "leagueType": "dynasty",
+  "maxKeepers": 1,
+  "_verified": {
+    "date": "2026-09-09",
+    "teams": 12,
+    "scoringKeys": 42,
+    "scoring": "full PPR",
+    "rosterPositions": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+      "FLEX",
+      "K",
+      "DEF",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN"
+    ],
+    "regularSeason": [
+      1,
+      14
+    ],
+    "playoffWeekStart": 15,
+    "playoffTeams": 6,
+    "tradeDeadline": 11
+  },
+  "stakes": {
+    "buyIn": 100,
+    "teams": 12,
+    "pot": 1200,
+    "structure": "winner-take-all",
+    "payouts": [
+      {
+        "place": 1,
+        "amount": 1200,
+        "label": "$1,200",
+        "note": "winner take all — nobody else gets anything"
+      }
+    ]
+  },
+  "punishment": {
+    "season": {
+      "name": "TBD",
+      "market": "lastPlace",
+      "copy": "Season loser does a punishment commissioner Lane has still not invented, having spent the offseason proposing dogshit trades instead. MBurnes — who already owes one from last season and has been in no rush whatsoever to see it specified — opens as the favourite to owe a second.",
+      "commissionerRosterId": 1,
+      "commissioner": "lanek12"
+    },
+    "weekly": {
+      "name": "THE PARLAY WINDOW",
+      "market": "weeklyLowScorer",
+      "copy": "Low scorer of the week places a $10 eleven-leg parlay — one leg picked by each other manager. Winnings split league-wide. It has never hit.",
+      "legs": 11,
+      "stake": 10,
+      "lifetimeHits": 0
+    }
+  },
+  "lore": {
+    "rivalries": [],
+    "runningBits": [
+      "Lane proposes dogshit trades",
+      "Lane has never designed the season-loser punishment",
+      "MBurnes still owes an unserved punishment from last season and is in no rush to have it defined"
+    ],
+    "notes": "Kunal to fill in. Generated specials ship every week regardless — an empty lore block never blocks a sheet."
+  },
+  "seats": [
+    {
+      "rosterId": 1,
+      "manager": "lanek12",
+      "teamName": "Tal top Smitty bottom",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 2,
+      "manager": "tal262000",
+      "teamName": null,
+      "nameOverride": "The DNs",
+      "nameOverrideNote": "House style, not temporary. The manager's Sleeper team name is a slur; the book prints 'The DNs' everywhere instead. Leave this set."
+    },
+    {
+      "rosterId": 3,
+      "manager": "Keeyan99",
+      "teamName": "Yan Dynasty",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 4,
+      "manager": "MBurnes",
+      "teamName": "Little St. Lane’s",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 5,
+      "manager": "kdutta",
+      "teamName": "3 AM afters in bull room",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 6,
+      "manager": "jc199",
+      "teamName": "Disciples of Yakub",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 7,
+      "manager": "samlaur",
+      "teamName": "Empyrean Athletic",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 8,
+      "manager": "Garrettrh",
+      "teamName": "Rat",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 9,
+      "manager": "Christopheryu21",
+      "teamName": "Trust the Process",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 10,
+      "manager": "ethansmith2580",
+      "teamName": "ETN SZN",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 11,
+      "manager": "rnath499",
+      "teamName": "The Washington Redskins",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 12,
+      "manager": "BotBinLaden",
+      "teamName": "Saddam Hussein Al-B’esnoy",
+      "nameOverride": null
+    }
+  ],
+  "preview": {
+    "standfirst": "Twelve hundred dollars, winner take all, and a commissioner who has not yet gotten around to inventing the punishment.",
+    "paragraphs": [
+      "This is a top-heavy league and the board says so immediately. tal262000's DNs open at 20.1% to win it — a fifth of the whole league in one seat — and carry a 9.5-win line and a 149.4-point week-one projection, both the highest on the sheet. His make-the-playoffs price is −2400, the shortest number posted anywhere in either book. From there it falls away to 3.1% at the bottom, a 6.5× spread between best and worst. Nick's league, priced by the identical model on the identical afternoon, runs 3.4×. That gap is dynasty doing exactly what dynasty is supposed to do: good teams keep their players, and advantages compound instead of resetting every August.",
+      "The payout structure then does something quite cruel to all of that. Winner take all means twelve hundred dollars sits in exactly one column of this sheet. A 77.2% chance of making the playoffs is worth, in dollars, nothing at all. A first-round bye is worth nothing. The points title is worth nothing. Every board on this page except the championship is pride, and the model prices them anyway because pride is what most of this league will be playing for by week ten. If you are looking for the only number that can be converted into money, it is the first one.",
+      "The weekly forfeit is the best-designed thing in either league. The low scorer places a ten-dollar parlay with eleven legs — one picked by each of the other managers — and the winnings, should they ever exist, are split league-wide. The lifetime record of this arrangement is zero hits. Trust the Process opens as the favourite to place it at 15.5%, which is consistent with everything else on his line: he is last in the championship, last in the playoffs, last in points, and holds the lowest projection in the league. He is also, in the other league, the reason a seat is currently named after a Cal loss.",
+      "As for the season-long punishment: there isn't one. The market is titled TBD because commissioner Lane spent the offseason proposing dogshit trades rather than designing a forfeit — and because MBurnes, who is still awaiting the punishment he already owes from last season, has been in no rush whatsoever to see it specified. That arrangement suited both of them right up until the board opened, because Burnes is the favourite to finish last again: 15.5% at +420, the shortest price on this market. A man with one undelivered forfeit is now odds-on to acquire a second. Lane's own seat sits at 4.9%, second-safest in the league, which is the sort of thing that tends to reduce a commissioner's urgency. The house's position is that an undesigned punishment is a punishment for everyone, and the market stays open until somebody writes it down."
+    ]
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "id": "nicks",
+  "sleeperLeagueId": "1389753891322593280",
+  "displayName": "Nick's",
+  "bookName": "NICK'S SPORTSBOOK",
+  "tagline": "Official betting partner of Nick's",
+  "leagueType": "keeper",
+  "maxKeepers": 1,
+  "_verified": {
+    "date": "2026-09-09",
+    "teams": 12,
+    "scoringKeys": 48,
+    "scoring": "full PPR",
+    "rosterPositions": [
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+      "FLEX",
+      "K",
+      "DEF",
+      "BN",
+      "BN",
+      "BN",
+      "BN",
+      "BN"
+    ],
+    "regularSeason": [
+      1,
+      14
+    ],
+    "playoffWeekStart": 15,
+    "playoffTeams": 6,
+    "tradeDeadline": 11
+  },
+  "stakes": {
+    "buyIn": 50,
+    "teams": 12,
+    "pot": 600,
+    "structure": "places-1-through-4-pay",
+    "payouts": [
+      {
+        "place": 1,
+        "amount": 450,
+        "label": "$450",
+        "note": "the rest of the pot"
+      },
+      {
+        "place": 2,
+        "amount": 100,
+        "label": "$100"
+      },
+      {
+        "place": 3,
+        "amount": 50,
+        "label": "$50",
+        "note": "buy-in back"
+      },
+      {
+        "place": 4,
+        "amount": null,
+        "label": "the interest",
+        "note": "accrued interest on the pot sitting in a SoFi HYSA at 4.50% APY"
+      }
+    ],
+    "hysa": {
+      "principal": 600,
+      "apy": 0.045,
+      "start": "2026-09-01",
+      "payout": "2026-12-30",
+      "_comment": "4th place prize is COMPUTED, not fixed. See DESIGN.md 6.2."
+    }
+  },
+  "punishment": {
+    "season": {
+      "name": "THE BUS STOP",
+      "market": "lastPlace",
+      "copy": "Last place spends a day at Bus Stop, open to close. Every beer he drinks takes an hour off. Every ten beers the rest of the league drinks puts an hour back on."
+    },
+    "weekly": {
+      "name": "KARAOKE",
+      "market": "weeklyLowScorer",
+      "copy": "Low scorer of the week sings at Silver Clouds. The week's high scorer picks the song.",
+      "pairedMarket": "weeklyHighScorer",
+      "pairedName": "SONG SELECT"
+    }
+  },
+  "lore": {
+    "rivalries": [],
+    "runningBits": [],
+    "notes": "Kunal to fill in. Generated specials ship every week regardless — an empty lore block never blocks a sheet."
+  },
+  "seats": [
+    {
+      "rosterId": 1,
+      "manager": "kdutta",
+      "teamName": "Garbers mirror selfie",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 2,
+      "manager": "rnath499",
+      "teamName": "Haircut Haircut 🗣️",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 3,
+      "manager": "jc199",
+      "teamName": "Return of the Menace",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 4,
+      "manager": "arnst",
+      "teamName": "Nonchalant Dreadhead",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 5,
+      "manager": "Christopheryu21",
+      "teamName": null,
+      "nameOverride": "Cal's Disappointing Week 1 Performance",
+      "nameOverrideNote": "TEMPORARY. Chris never set a team name, and Cal lost to UCLA in week 1. He is the biggest Cal fan alive. Set nameOverride back to null to revert — nothing else in the pipeline depends on it.",
+      "nameOverrideSince": 1
+    },
+    {
+      "rosterId": 6,
+      "manager": "Keeyan99",
+      "teamName": "Comet club?",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 7,
+      "manager": "prozan",
+      "teamName": "Perc Thuggins",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 8,
+      "manager": "A5Kobe",
+      "teamName": "Beriousbeast",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 9,
+      "manager": "goochsniffer2nd",
+      "teamName": "Got My Noahs in Paris",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 10,
+      "manager": "MBurnes",
+      "teamName": "George Droyd",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 11,
+      "manager": "FonckYou",
+      "teamName": "Gus’s Balls",
+      "nameOverride": null
+    },
+    {
+      "rosterId": 12,
+      "manager": "TheHumSack",
+      "teamName": "Death By Foriegn War ",
+      "nameOverride": null
+    }
+  ],
+  "preview": {
+    "standfirst": "Twelve seats, six hundred dollars, and four of them get paid. This is the flattest field the model has priced — and one seat it has already given up on.",
+    "paragraphs": [
+      "Start with the shape of the board, because it is the whole story. In a perfectly even twelve-team league every seat would hold an 8.3% title chance. The favourite here holds 12.9%. The longshot holds 3.8%. That is a 3.4× spread between the best and worst rosters in the league, which sounds like a lot until you look at what the same number does one league over, where it is nearly double. Nobody in this room drafted their way to a championship. They drafted their way to a coin flip with a slight lean, and then they will spend fourteen weeks pretending otherwise.",
+      "The money is what makes this league read differently from a normal one. Four places pay, and they pay in descending order of dignity: four hundred and fifty dollars, then one hundred, then your buy-in handed back to you, then — for fourth exactly — whatever interest the pot happened to earn sitting in a savings account since September. That last prize is real, it is computed live further down this page, and at the time of writing it would not cover a sandwich. It is also the funniest line on either sheet, because somebody is going to finish fourth and have to decide whether to be happy about it.",
+      "Because four places pay, the number that actually governs this room is not the championship — it is the MONEY column in the table above, the chance a season ends with something in your hand. The favourite sits at 45.6%. Chris, at the bottom, sits at 18.1%. Every other seat is somewhere between, which is another way of saying almost everybody here is genuinely live and will still be genuinely live in November. Read the gold blocks rather than the ladders: four of twelve finishes pay in this league, and how much gold a seat carries is the whole of its season.",
+      "Then there are the forfeits. Last place spends a day at Bus Stop, open to close, with an hour off for every beer he drinks and an hour back on for every ten the rest of the league drinks — a punishment whose incentives are so badly designed that it loops back around to perfect. And every single week, the low scorer sings at Silver Clouds, with the song chosen by that week's high scorer. Those two markets are priced together on the week card, because they are not independent events: a hundred and forty point week makes you the DJ and makes somebody else the singer.",
+      "Which brings us to the seat this book has already buried. Chris drew a roster that finishes last in all seven futures markets on this sheet — last in the championship, last in top two, last in money back, last in the playoffs, last in the bye, last in points, and, inevitably, first in the Bus Stop at +370. His lineup forfeits its kicker slot outright, because nobody eligible is on the roster, which is worth about eight points a week he is spotting the field. He also never set a team name. And on the opening weekend of the season, his Golden Bears lost to UCLA. The house has taken the liberty of naming the seat for him."
+    ]
+  }
+}

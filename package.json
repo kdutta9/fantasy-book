@@ -1,0 +1,28 @@
+{
+  "name": "fantasy-book",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "pull": "node scripts/pull.mjs",
+    "build-book": "node scripts/build-book.mjs",
+    "refresh": "node scripts/refresh.mjs",
+    "check-frozen": "node scripts/check-frozen.mjs",
+    "set-proj": "node scripts/set-proj.mjs",
+    "add-league": "node scripts/add-league.mjs",
+    "test": "node --test test/",
+    "publish": "node scripts/publish.mjs",
+    "deploy": "vite build && rsync -a --delete dist/ ../kdutta9.github.io/fantasy/ && cd ../kdutta9.github.io && git add fantasy && (git diff --cached --quiet || git commit -m 'Deploy: fantasy sportsbook') && git push"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.3.5"
+  }
+}

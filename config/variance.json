@@ -1,0 +1,14 @@
+{
+  "_comment": "sigma(mu) = a + b*mu, fitted on Sleeper 2025 weeks 1-14 (projection vs actual residuals), scored under full-PPR. Regenerate with scripts/calibrate.mjs; do not hand-edit. Re-fit at most once per season, never mid-season.",
+  "_fitted": "2026-09-09",
+  "_source": "api.sleeper.com/projections/nfl/2025/<w> vs /stats/nfl/2025/<w>, mu>=1",
+  "positions": {
+    "QB":  { "a": 7.265, "b": 0.0205, "n": 416,  "bias": -0.55 },
+    "RB":  { "a": 2.548, "b": 0.3440, "n": 1016, "bias": -0.34 },
+    "WR":  { "a": 2.823, "b": 0.3726, "n": 1672, "bias": -0.34 },
+    "TE":  { "a": 2.279, "b": 0.3914, "n": 880,  "bias":  0.07 },
+    "K":   { "a": 4.068, "b": 0.0735, "n": 409,  "bias": -0.09 },
+    "DEF": { "a": 3.912, "b": 0.2838, "n": 416,  "bias":  0.26 }
+  },
+  "sigma_floor": 1.5
+}
