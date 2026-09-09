@@ -51,12 +51,13 @@ Do not modify anything in `../worldcup`. It is frozen and its build guards must 
    Worldcup has a whole section of scar tissue about UTC dates minting sheets a day early;
    don't re-earn it.
 
-5. **A posted week's projections are frozen.** `pull.mjs` will not overwrite
-   `projections/<season>/w<W>.json` once any book has a sheet for that week — Sleeper's
-   numbers move continuously, so re-pulling a posted week (re-running refresh mid-week, or
-   onboarding a new league) would change the inputs underneath a live sheet and
-   check-frozen would correctly start failing. `--force-projections` overrides it; you
-   almost never want to. Onboarding a league mid-season instead *widens* the existing file
+5. **Every input to a posted week is frozen — projections AND the league snapshot.**
+   `pull.mjs` re-fetches neither once any book has a sheet for that week. Sleeper's numbers
+   move continuously, and the snapshot carries a fresh `pulledAt` on every fetch, so a
+   re-pull reprices a live sheet on nothing but a timestamp — which is exactly what
+   `--refresh-names` did to all three leagues before this guard covered both doors.
+   `--force-inputs` opens them, and you then owe a rebuild and re-publish of every sheet it
+   touched. Onboarding a league mid-season instead *widens* the projections file
    additively — new scoring keys only, never a changed value.
 
 6. **A sheet never inherits last week's copy.** Worldcup's documented failure mode is

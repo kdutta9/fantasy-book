@@ -261,6 +261,38 @@ Raw pulls are 14.6 MB (players) + ~2 MB/week (projections). Never commit raw:
 
 One module owns the field list.
 
+### 4.3b Refreshing names, and the input freeze
+
+Managers rename teams mid-season and `add-league` seeds names only once, so without
+a refresh every rename is a hand edit. `npm run refresh -- --refresh-names` (or
+`npm run pull -- --refresh-names`) re-reads each seat's `manager` and `teamName`
+from Sleeper into config and prints what moved.
+
+It never touches **`nameOverride`**. That field is how the book deliberately
+overrules Sleeper — a name it refuses to print, a joke the house made — and a
+refresh that clobbered one would silently undo a human decision. The upstream name
+is still recorded in `teamName`, so an override can be dropped later without
+another fetch, and the change log says so explicitly:
+
+```
+dkenasty: 1 name change(s)
+    roster 2: (no team name) → Downsyndrome Njigbas  [still displayed as "The DNs" — nameOverride untouched]
+```
+
+**Names are display-only and provably move no price** — a rename diffs to exactly
+the `team` fields and nothing else — but a committed sheet rebuilds from config,
+so refreshing names does make posted sheets stale until rebuilt. That is why
+`refresh` runs the rebuild in the same command.
+
+**The input freeze.** Once any book has a sheet for week W, `pull` re-fetches
+neither that week's projections nor any league's week-W snapshot. Sleeper's numbers
+move continuously and the snapshot carries a fresh `pulledAt` on every fetch, so a
+re-pull reprices a live sheet on nothing but a timestamp — which is precisely what
+`--refresh-names` did to all three leagues the first time it ran, before the guard
+covered both doors. `--force-inputs` opens them and obliges you to rebuild and
+re-publish whatever it touched. `state.json` is exempt: it is the latest-pull
+pointer, not a sheet input.
+
 ### 4.4 Manual override hatch
 
 ```bash

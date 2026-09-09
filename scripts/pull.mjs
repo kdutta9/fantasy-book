@@ -7,11 +7,14 @@
 //   npm run pull                       # current week from /v1/state/nfl, all leagues
 //   npm run pull -- --week 6           # a specific week
 //   npm run pull -- --league nicks     # one league (projections are still shared)
+//   npm run pull -- --refresh-names    # re-read team names from Sleeper into config
+//   npm run pull -- --force-inputs     # re-pull a week that already has a posted sheet
 //   npm run pull -- --refresh-schedule # re-pull the season-long schedule/bracket
 
 import { existsSync, readdirSync } from "node:fs";
 import { basename } from "node:path";
 import { readJson, writeJson } from "./lib/json.mjs";
+import { mergeSeatNames, describeChange } from "./lib/seats.mjs";
 import * as P from "./lib/paths.mjs";
 import * as sleeper from "./lib/sleeper.mjs";
 import { scoringKeyUnion, slimPlayers, slimProjections } from "./lib/slim.mjs";
@@ -26,7 +29,35 @@ export const allLeagueIds = () =>
     .map((f) => basename(f, ".json"))
     .sort();
 
-export async function pull({ leagueIds, week, season, refreshSchedule = false, forceProjections = false, log = console.log }) {
+// Refresh each seat's manager and teamName from Sleeper. Names are display-only —
+// a rename provably moves no price — but a committed sheet rebuilds from config,
+// so a refresh does make already-posted sheets stale until they are rebuilt. That
+// is why this is opt-in rather than part of every pull: `npm run refresh --
+// --refresh-names` refreshes and rebuilds in one go, which is the intended path.
+async function refreshLeagueNames({ leagueIds, configs, log }) {
+  let total = 0;
+  for (const id of leagueIds) {
+    const config = configs[id];
+    const [users, rosters] = await Promise.all([
+      sleeper.fetchUsers(config.sleeperLeagueId),
+      sleeper.fetchRosters(config.sleeperLeagueId),
+    ]);
+    const { seats, changes } = mergeSeatNames(config.seats, users, rosters);
+    if (!changes.length) {
+      log(`${id}: names already current`);
+      continue;
+    }
+    config.seats = seats;
+    writeJson(P.leagueConfigPath(id), config);
+    log(`${id}: ${changes.length} name change(s)`);
+    for (const c of changes) log(`    ${describeChange(c)}`);
+    total += changes.length;
+  }
+  if (total) log(`\n${total} name(s) changed — rebuild the affected sheets so they match config.`);
+  return total;
+}
+
+export async function pull({ leagueIds, week, season, refreshSchedule = false, forceInputs = false, refreshNames = false, log = console.log }) {
   const pulledAt = new Date().toISOString();
 
   // Every league's settings are fetched, not just the ones being pulled: the
@@ -39,34 +70,35 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, f
   const settings = {};
   for (const id of everyId) settings[id] = await sleeper.fetchLeague(configs[id].sleeperLeagueId);
 
-  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), forceProjections, log });
+  if (refreshNames) await refreshLeagueNames({ leagueIds, configs, log });
+
+  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), forceInputs, log });
   const playersDate = await pullPlayers({ leagueIds: everyId, configs, projected, log });
 
   for (const id of leagueIds) {
-    await pullLeagueWeek({ id, config: configs[id], league: settings[id], week, season, playersDate, pulledAt, refreshSchedule, log });
+    await pullLeagueWeek({ id, config: configs[id], league: settings[id], week, season, playersDate, pulledAt, refreshSchedule, forceInputs, log });
   }
 
   writeJson(P.statePath, { season, week, pulledAt, leagues: leagueIds });
   return { season, week, playersDate, pulledAt };
 }
 
-// Projections for a week are frozen the moment that week's sheet is posted.
-// Sleeper's numbers move continuously, so re-pulling a posted week would change
-// the inputs underneath a committed sheet and check-frozen would (correctly)
-// start failing — the same hazard the schedule and players writes are already
-// guarded against. Re-running refresh mid-week, or onboarding a new league, must
-// not reprice a book that is already live. Pass --force-projections only when you
-// genuinely intend to move a posted week's inputs.
-function projectionsAreFrozen(season, week, forceProjections) {
-  if (forceProjections) return false;
-  if (!existsSync(P.projFile(season, week))) return false;
-  return readdirSync(P.booksRoot).some((id) => existsSync(P.bookFile(id, week)));
-}
+// EVERY input to a posted week is frozen, not just the projections. Sleeper's
+// numbers move continuously and the league snapshot carries a fresh `pulledAt` on
+// every fetch, so re-pulling a week that already has a sheet rewrites the inputs
+// underneath it and check-frozen correctly starts failing. That is not
+// hypothetical: running --refresh-names across three posted leagues repriced all
+// three on nothing but a new timestamp.
+//
+// Two doors, one rule. --force-inputs opens both, and you then owe a rebuild and
+// a re-publish of every sheet it touched.
+const weekIsPosted = (week) =>
+  existsSync(P.booksRoot) && readdirSync(P.booksRoot).some((id) => existsSync(P.bookFile(id, week)));
 
-async function pullProjections({ season, week, keys, forceProjections, log }) {
+async function pullProjections({ season, week, keys, forceInputs, log }) {
   // K and DEF come on their own call and are REQUIRED — both leagues start both.
-  if (projectionsAreFrozen(season, week, forceProjections)) {
-    log(`projections ${season} w${week}: already posted — left untouched (--force-projections to override)`);
+  if (!forceInputs && existsSync(P.projFile(season, week)) && weekIsPosted(week)) {
+    log(`projections ${season} w${week}: week already posted — left untouched (--force-inputs to override)`);
     return Object.keys(readJson(P.projFile(season, week)));
   }
   const [skill, kicking] = await Promise.all([
@@ -104,7 +136,13 @@ async function pullPlayers({ leagueIds, configs, projected, log }) {
   return date;
 }
 
-async function pullLeagueWeek({ id, config, league, week, season, playersDate, pulledAt, refreshSchedule, log }) {
+async function pullLeagueWeek({ id, config, league, week, season, playersDate, pulledAt, refreshSchedule, forceInputs, log }) {
+  // The other half of the freeze. `pulledAt` alone is enough to reprice a posted
+  // sheet, so a posted week's snapshot is not re-fetched at all.
+  if (!forceInputs && existsSync(P.leagueWeekFile(id, week)) && weekIsPosted(week)) {
+    log(`${id}: week ${week} already posted — snapshot left untouched (--force-inputs to override)`);
+    return;
+  }
   const sleeperId = config.sleeperLeagueId;
 
   // The schedule and bracket are season-long constants. Re-pulling them every
@@ -195,6 +233,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const season = option("--season", state.season);
   const only = option("--league", null);
   const leagueIds = only ? only.split(",") : allLeagueIds();
-  await pull({ leagueIds, week, season, refreshSchedule: flag("--refresh-schedule"), forceProjections: flag("--force-projections") });
+  await pull({
+    leagueIds,
+    week,
+    season,
+    refreshSchedule: flag("--refresh-schedule"),
+    forceInputs: flag("--force-inputs"),
+    refreshNames: flag("--refresh-names"),
+  });
   console.log(`\nPulled ${season} week ${week} for ${leagueIds.join(", ")}.`);
 }

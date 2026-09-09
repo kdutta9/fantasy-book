@@ -6,6 +6,7 @@
 //   npm run refresh -- --league nicks   # one league, on its own
 //   npm run refresh -- --week 6
 //   npm run refresh -- --no-pull        # rebuild from committed inputs only
+//   npm run refresh -- --refresh-names  # re-read team names from Sleeper, then rebuild
 //
 // Each league is built inside its own try. A DKEnasty failure must still leave
 // Nick's sheet publishable (§6.6) — so a failed league is reported and the exit
@@ -36,7 +37,13 @@ if (skipPull) {
   const state = await fetchState();
   season = option("--season", state.season);
   week = Number(option("--week", state.week));
-  await pull({ leagueIds, week, season, refreshSchedule: flag("--refresh-schedule") });
+  await pull({
+    leagueIds,
+    week,
+    season,
+    refreshSchedule: flag("--refresh-schedule"),
+    refreshNames: flag("--refresh-names"),
+  });
   console.log();
 }
 
