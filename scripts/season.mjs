@@ -87,6 +87,7 @@ export function simulateSeason({
   variance,
   seasonVariance,
   schedule, // { "<week>": [[rosterA, rosterB], …] }
+  record, // roster_id → { wins, points } already banked before `week`
   week, // the week being previewed
   throughWeek, // last regular-season week (14 in both leagues)
   bracket,
@@ -128,12 +129,24 @@ export function simulateSeason({
   const score = new Float64Array(n);
   const wins = new Float64Array(n);
   const points = new Float64Array(n);
+  // Games already played are banked, not re-simulated. Without this the futures
+  // board resets the standings to 0-0 every week, which is wrong from week 2 on
+  // and absurd by November: in LoOG's week-2 build bmilgram had won 156.4–104.8
+  // and his title price still drifted OUT. The seeding tiebreak is wins then
+  // points-for, so both have to carry, and a tie is half a win exactly as it is
+  // inside the loop.
+  const bankedWins = new Float64Array(n);
+  const bankedPoints = new Float64Array(n);
+  for (const [id, i] of at) {
+    bankedWins[i] = record?.get(id)?.wins ?? 0;
+    bankedPoints[i] = record?.get(id)?.points ?? 0;
+  }
   const playoffRounds = Array.from({ length: PLAYOFF_ROUNDS }, () => new Float64Array(n));
   const order = new Int32Array(n);
 
   for (let s = 0; s < sims; s++) {
-    wins.fill(0);
-    points.fill(0);
+    wins.set(bankedWins);
+    points.set(bankedPoints);
     for (let t = 0; t < n; t++) drawSeasonForm(restOfSeason[t], variance, rng, form[t]);
     for (const { w, isCurrent } of regular) {
       const spec = isCurrent ? thisWeek : form;

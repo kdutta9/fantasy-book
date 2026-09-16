@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { loadBook, loadBooksIndex } from "./data";
 import { LineMovement, PriceMove } from "./movement";
 import Futures from "./Futures";
+import Settled from "./Settled";
+import { Markdown } from "./markdown";
+import { loadNote, matchupNote, slot } from "./notes";
 
 // `?book=<id>` → that league's sheet, `?book` → the lobby. This view only
 // renders the JSON; every number on it was priced by scripts/build-book.mjs from
@@ -115,6 +118,12 @@ function WeekNav({ weeks, cur, onNav }) {
 
 function Sheet({ sheet, prev, weeks, sheets, cur, view, onNav }) {
   const isCrossover = sheet.id === "crossover";
+  // Prose for THIS week only. There is deliberately no fallback to last week's
+  // file: worldcup's documented failure mode is a sheet that reprices itself and
+  // keeps the old words, and inheriting copy is how that happens (DESIGN.md
+  // §2.2). No file for this week means no prose, and the generated boards ship
+  // exactly as they are.
+  const note = loadNote(sheet.id, sheet.week);
   // The crossover is a single page and ignores `view` — it has no futures board
   // of its own, only slips derived from two committed league sheets (§6.7).
   const page = isCrossover ? "crossover" : view;
@@ -136,8 +145,8 @@ function Sheet({ sheet, prev, weeks, sheets, cur, view, onNav }) {
     <>
       <Head sheet={sheet} weeks={weeks} cur={cur} onNav={onNav} page={page} />
       {page === "crossover" && <Crossover sheet={sheet} />}
-      {page === "week" && <Week sheet={sheet} prev={prev} sheets={sheets} weeks={weeks} cur={cur} />}
-      {page === "season" && <Season sheet={sheet} prev={prev} />}
+      {page === "week" && <Week sheet={sheet} prev={prev} sheets={sheets} weeks={weeks} cur={cur} note={note} />}
+      {page === "season" && <Season sheet={sheet} prev={prev} note={note} />}
       <FinePrint sheet={sheet} page={page} />
     </>
   );
@@ -181,9 +190,13 @@ function Head({ sheet, weeks, cur, onNav, page }) {
           </a>
         </nav>
       )}
+      {/* No standing link to the Crossover. It is built by a third pass that runs
+          only when every league has a committed sheet for the week, so it lags —
+          and a permanent chip pointing at a sheet that is quietly a week behind is
+          worse than no chip. It is still a book in the lobby and ?book=crossover
+          still resolves. */}
       <nav className="fb-booknav">
         <a href="?book">All books</a>
-        <a className={page === "crossover" ? "active" : ""} href="?book=crossover">The Crossover</a>
       </nav>
     </header>
   );
@@ -194,13 +207,34 @@ function Head({ sheet, weeks, cur, onNav, page }) {
 // page so that a reader looking for "who do I play and am I favoured" does not
 // have to scroll past seven futures ladders to find out.
 
-function Week({ sheet, prev, sheets, weeks, cur }) {
+function Week({ sheet, prev, sheets, weeks, cur, note }) {
   const { punishment } = sheet;
   return (
     <>
+      {slot(note, "lede") && (
+        <section className="bk-panel fb-lede" id="the-lede">
+          <h2 className="bk-panel-title">{note.meta.headline ?? `WEEK ${sheet.week}`}</h2>
+          <Markdown text={slot(note, "lede")} className="fb-prose-cols" />
+          {note.meta.byline && <p className="fb-byline">{note.meta.byline}</p>}
+        </section>
+      )}
+
+      {sheet.settled && (
+        <Settled
+          settled={sheet.settled}
+          punishment={punishment}
+          Panel={Panel}
+          note={slot(note, "settled")}
+          benchNote={slot(note, "bench")}
+        />
+      )}
+
       <Panel
         title={`THE CARD — WEEK ${sheet.week}`}
-        blurb="Moneyline, spread and total on every matchup. Spreads and totals are the half-point where the simulated distribution splits evenly, so both sides post at −110 — the line moves, not the price."
+        blurb={
+          slot(note, "card") ??
+          "Moneyline, spread and total on every matchup. Spreads and totals are the half-point where the simulated distribution splits evenly, so both sides post at −110 — the line moves, not the price."
+        }
       >
         <div className="fb-match-head">
           <span>MATCHUP</span>
@@ -210,7 +244,12 @@ function Week({ sheet, prev, sheets, weeks, cur }) {
         </div>
         <div className="fb-card">
           {sheet.matchups.map((m) => (
-            <Matchup key={`${m.a.rosterId}-${m.b.rosterId}`} m={m} prev={findMatchup(prev, m)} />
+            <Matchup
+              key={`${m.a.rosterId}-${m.b.rosterId}`}
+              m={m}
+              prev={findMatchup(prev, m)}
+              note={matchupNote(note, m.a.rosterId, m.b.rosterId)}
+            />
           ))}
         </div>
       </Panel>
@@ -219,6 +258,7 @@ function Week({ sheet, prev, sheets, weeks, cur }) {
 
       <div className={punishment.paired ? "fb-grid2" : ""}>
         <Panel title={`${punishment.weekly.name} — LOW SCORER`} blurb={punishment.weekly.copy}>
+          {slot(note, "punishment") && <Markdown text={slot(note, "punishment")} className="fb-panel-prose" />}
           {punishment.weekly.parlay && (
             <p className="fb-note">
               {punishment.weekly.legs ?? punishment.weekly.parlay.legs} legs · ${punishment.weekly.parlay.stake} ·
@@ -229,6 +269,9 @@ function Week({ sheet, prev, sheets, weeks, cur }) {
         </Panel>
         {punishment.paired && (
           <Panel title={`${punishment.paired.name} — HIGH SCORER`} blurb={punishment.paired.copy}>
+            {slot(note, "punishment-paired") && (
+              <Markdown text={slot(note, "punishment-paired")} className="fb-panel-prose" />
+            )}
             <Runners rows={punishment.paired.rows} prevRows={prev?.punishment?.paired?.rows} />
           </Panel>
         )}
@@ -239,6 +282,7 @@ function Week({ sheet, prev, sheets, weeks, cur }) {
           title="THE JOINT — WHO SINGS WHAT"
           blurb="Low scorer and high scorer in the same week, priced together rather than multiplied: a 145-point week makes you the high scorer and makes someone else the low one, so these are not independent."
         >
+          {slot(note, "joint") && <Markdown text={slot(note, "joint")} className="fb-panel-prose" />}
           {punishment.joints.map((j) => (
             <div key={`${j.low.rosterId}-${j.high.rosterId}`} className="fb-slip">
               <span className="fb-slip-text">
@@ -255,22 +299,40 @@ function Week({ sheet, prev, sheets, weeks, cur }) {
         title="THE LINEUPS"
         blurb="Optimal by projection against each league's roster slots — what a manager knows Sunday morning. Scores are drawn on the simulation, never on the projection, which would be lookahead bias."
       >
+        {slot(note, "lineups") && <Markdown text={slot(note, "lineups")} className="fb-panel-prose" />}
         <div className="fb-lineups">
           {[...sheet.lineups].sort((a, b) => b.projected - a.projected).map((seat) => (
             <Lineup key={seat.rosterId} seat={seat} />
           ))}
         </div>
       </Panel>
+
+      {/* A heading the renderer does not recognise as a slot becomes its own
+          panel, titled as written. Adding a one-off section to a week is typing
+          a heading in the .md file, never a change in here. */}
+      {note?.panels.map((panel) => (
+        <Panel key={panel.title} title={panel.title.toUpperCase()}>
+          <Markdown text={panel.text} className="fb-prose-cols" />
+        </Panel>
+      ))}
     </>
   );
 }
 
 // --- The season page (?book=<id>&view=season) --------------------------------
 
-function Season({ sheet, prev }) {
+function Season({ sheet, prev, note }) {
+  const written = slot(note, "season");
   return (
     <>
-      {sheet.preview && <Preview preview={sheet.preview} week={sheet.week} />}
+      {written ? (
+        <section className="bk-panel fb-preview" id="season-preview">
+          <h2 className="bk-panel-title">{note.meta.headline ?? "THE FUTURES BOARD"}</h2>
+          <Markdown text={written} className="fb-prose-cols" />
+        </section>
+      ) : (
+        sheet.preview && <Preview preview={sheet.preview} week={sheet.week} />
+      )}
       <Futures sheet={sheet} prev={prev} Panel={Panel} />
     </>
   );
@@ -299,9 +361,9 @@ function Preview({ preview, week }) {
   );
 }
 
-function Matchup({ m, prev }) {
+function Matchup({ m, prev, note }) {
   return (
-    <div className="fb-match">
+    <div className={note ? "fb-match noted" : "fb-match"}>
       <div className="fb-seats">
         <Seat seat={m.a} proj={m.projected.a} fav />
         <Seat seat={m.b} proj={m.projected.b} />
@@ -319,6 +381,7 @@ function Matchup({ m, prev }) {
         <span className="fb-odds">O {m.total.line.toFixed(1)}<small>{m.total.over}</small></span>
         <span className="fb-odds dim">U {m.total.line.toFixed(1)}<small>{m.total.under}</small></span>
       </div>
+      {note && <Markdown text={note} className="fb-match-note" />}
     </div>
   );
 }
@@ -468,8 +531,7 @@ function FinePrint({ sheet, page }) {
             <a className="bk-link" href={`?book=${sheet.id}&w=${sheet.week}`}>The card — week {sheet.week}</a> ·{" "}
           </>
         )}
-        <a className="bk-link" href="?book">All books</a> ·{" "}
-        <a className="bk-link" href="?book=crossover">The Crossover</a>
+        <a className="bk-link" href="?book">All books</a>
       </p>
     </footer>
   );

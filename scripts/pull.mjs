@@ -77,6 +77,7 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, f
 
   for (const id of leagueIds) {
     await pullLeagueWeek({ id, config: configs[id], league: settings[id], week, season, playersDate, pulledAt, refreshSchedule, forceInputs, log });
+    await pullLeagueResults({ id, config: configs[id], week, season, log });
   }
 
   writeJson(P.statePath, { season, week, pulledAt, leagues: leagueIds });
@@ -112,8 +113,12 @@ async function pullProjections({ season, week, keys, forceInputs, log }) {
   log(`projections ${season} w${week}: ${rows.length} rows → ${Object.keys(slim).length} players, ${keys.length} scoring keys`);
   writeJson(P.projFile(season, week), slim);
 
+  // Week-scoped, and never written back to the un-versioned season.json. That
+  // file is an input to every already-posted sheet's futures board, and 26 of
+  // its 3,304 rows had already moved a week into the season — overwriting it
+  // reprices frozen history on nothing but Sleeper's own drift.
   const seasonRows = await sleeper.fetchSeasonProjections(season, sleeper.SCORING_POSITIONS);
-  writeJson(P.seasonProjFile(season), slimProjections(seasonRows, keys));
+  writeJson(P.seasonProjWeekFile(season, week), slimProjections(seasonRows, keys));
   return Object.keys(slim);
 }
 
@@ -212,6 +217,45 @@ async function pullLeagueWeek({ id, config, league, week, season, playersDate, p
   });
   log(`${id}: week ${week} rosters + matchups`);
 }
+
+// Final scores for every week already played, so that sheet W can settle week
+// W−1 (DESIGN.md §8.1). Deliberately unlike every other pull:
+//
+//   * only weeks strictly before the current one are fetched — a week in
+//     progress has live points that would move under a sheet that cited them;
+//   * a results file is written ONCE and never re-fetched, and carries no
+//     `pulledAt`. A settled week is immutable, so its file has nothing a second
+//     pull could legitimately change, and --force-inputs deliberately does not
+//     reopen it. (Sleeper stat corrections land within a day or two; the sheet
+//     says the scores are as they stood at the Tuesday pull.)
+//
+// That is what lets the settlement block be an ordinary frozen input rather than
+// a live read, and it backfills on its own if a week is ever skipped.
+async function pullLeagueResults({ id, config, week, season, log }) {
+  const wanted = [];
+  for (let w = 1; w < week; w++) if (!existsSync(P.leagueResultsFile(id, w))) wanted.push(w);
+  if (!wanted.length) return;
+  for (const w of wanted) {
+    const rows = await sleeper.fetchMatchups(config.sleeperLeagueId, w);
+    writeJson(P.leagueResultsFile(id, w), {
+      id,
+      season,
+      week: w,
+      rosters: rows
+        .map((r) => ({
+          rosterId: r.roster_id,
+          matchupId: r.matchup_id,
+          points: r.points ?? 0,
+          starters: r.starters ?? [],
+          playerPoints: sortedByKey(r.players_points ?? {}),
+        }))
+        .sort((a, b) => a.rosterId - b.rosterId),
+    });
+  }
+  log(`${id}: final scores for week${wanted.length > 1 ? "s" : ""} ${wanted.join(", ")}`);
+}
+
+const sortedByKey = (obj) => Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]]));
 
 // [{roster_id, matchup_id}] → [[a, b], ...], sorted, so the committed schedule
 // does not depend on Sleeper's row order.

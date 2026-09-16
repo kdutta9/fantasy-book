@@ -35,12 +35,21 @@ for (const leagueId of allLeagueIds()) {
     });
 
     test(`${leagueId} w${week}: nobody is a lock to make the playoffs in week ${week}`, () => {
-      // 6 of 12 make it. A preseason favourite belongs in the 55-75% range; the
+      // 6 of 12 make it. A PRESEASON favourite belongs in the 55-75% range; the
       // model that produced 96% was treating a projection as fact for 14 weeks.
       // Lives on the standings table now that the playoffs ladder was folded in
       // — it was the same ranking as the championship board (rho 0.97).
+      //
+      // The tight bound is asserted at week 1 ONLY, and deliberately so. It is a
+      // statement about the preseason, and week-1 sheets are frozen forever, so
+      // it goes on being a permanent regression test of the season-variance
+      // model. Applying a preseason constant to a later week is the same
+      // category error the −400 moneyline ceiling made: by week 2 DKEnasty's
+      // best roster was 1-0 and eight points a week clear of the field, and 85.8%
+      // to make a six-of-twelve field is not evidence of anything being broken.
+      // Later weeks get an absurdity bound and nothing more.
       const odds = book.futures.standings.map((r) => r.playoffs).sort((a, b) => b - a);
-      assert.ok(odds[0] < 85, `favourite is ${odds[0]}% to make the playoffs`);
+      assert.ok(odds[0] < (week === 1 ? 85 : 95), `favourite is ${odds[0]}% to make the playoffs`);
       assert.ok(odds.at(-1) > 10, `longshot is ${odds.at(-1)}% to make the playoffs`);
     });
 
@@ -51,12 +60,18 @@ for (const leagueId of allLeagueIds()) {
     });
 
     test(`${leagueId} w${week}: expected wins average out over the schedule`, () => {
-      // Every game has exactly one win in it, so the mean must be half the
-      // remaining schedule plus what is already banked. A drift here means the
-      // schedule pairings or the tie rule are wrong.
+      // Every game has exactly one win in it, and a tie is half a win to each
+      // side, so across a full regular season the mean win total is always half
+      // the schedule — whatever week the sheet is built in. Banked wins and
+      // simulated ones are the same currency, which is precisely what this
+      // asserts: before results were carried into the sim the mean was half the
+      // REMAINING schedule, and the two only agree if nothing is double-counted
+      // or dropped at the boundary.
       const mean = book.futures.winTotals.reduce((s, w) => s + w.expected, 0) / seats;
-      const games = book.meta.throughWeek - week + 1;
-      assert.ok(Math.abs(mean - games / 2) < 0.15, `mean expected wins ${mean} over ${games} games`);
+      assert.ok(
+        Math.abs(mean - book.meta.throughWeek / 2) < 0.15,
+        `mean expected wins ${mean} over a ${book.meta.throughWeek}-game season`
+      );
     });
 
     test(`${leagueId} w${week}: rest-of-season lineups project a plausible week`, () => {

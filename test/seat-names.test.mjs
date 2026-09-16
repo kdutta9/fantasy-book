@@ -32,8 +32,40 @@ test("NEVER touches nameOverride, and the sheet keeps printing the override", ()
   // another fetch — but it must not reach the sheet.
   assert.equal(out[0].teamName, "Downsyndrome Njigbas");
   assert.equal(changes[0].overridden, "The DNs");
-  const resolve = seatResolver({ seats: out }, [{ user_id: "u2", display_name: "tal262000" }]);
+  const resolve = seatResolver({ seats: out }, [{ user_id: "u2", display_name: "tal262000" }], 1);
   assert.equal(resolve(2, "u2").team, "The DNs", "an overridden seat must still print the override");
+});
+
+test("a gated override applies to its own weeks and no others", () => {
+  // The freeze rule applied to words: an override is usually a joke about one
+  // particular week, and the sheet that posted it must keep saying so.
+  const seats = [
+    {
+      rosterId: 2,
+      manager: "tal262000",
+      teamName: "Downsyndrome Njigbas",
+      nameOverrides: [
+        { since: 1, name: "The DNs" },
+        { since: 3, name: null },
+      ],
+    },
+  ];
+  const resolve = seatResolver({ seats }, [{ user_id: "u2", display_name: "tal262000" }], 1);
+  const at = (week) => seatResolver({ seats }, [{ user_id: "u2", display_name: "tal262000" }], week)(2, "u2").team;
+  assert.equal(resolve(2, "u2").team, "The DNs");
+  assert.equal(at(2), "The DNs", "the override still stands the week before it is lifted");
+  assert.equal(at(3), "Downsyndrome Njigbas", "name: null falls through to the upstream name");
+  assert.equal(at(9), "Downsyndrome Njigbas");
+});
+
+test("a refresh never touches a gated override either", () => {
+  const seats = [
+    { rosterId: 2, manager: "tal262000", teamName: null, nameOverrides: [{ since: 1, name: "The DNs" }] },
+  ];
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
+  assert.deepEqual(out[0].nameOverrides, [{ since: 1, name: "The DNs" }], "the timeline was modified");
+  assert.equal(out[0].teamName, "Downsyndrome Njigbas");
+  assert.equal(changes[0].overridden, "The DNs", "the change log must say what is still being displayed");
 });
 
 test("a manager change is reported separately from a team rename", () => {
