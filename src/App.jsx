@@ -6,14 +6,12 @@ import { css } from "./styles";
 //   ?book=<id>        → that league's newest sheet, the week card
 //   ?book=<id>&view=season → the season preview / futures board for that league
 //   ?book=<id>&w=6    → a specific week
-//   ?book=crossover   → the cross-league sheet (§6.7)
 //   ?book | (none)    → the lobby
 export default function App() {
   const params = new URLSearchParams(window.location.search);
   const bookId = params.get("book") || null;
   const week = params.has("w") ? Number(params.get("w")) : null;
-  // The card and the season board are separate pages. Crossover has one page and
-  // ignores this entirely.
+  // The card and the season board are separate pages.
   const view = params.get("view") === "season" ? "season" : "week";
   return (
     <>

@@ -73,13 +73,13 @@ function Lobby({ index }) {
       <header className="bk-head">
         <p className="bk-eyebrow">THE HOUSE ALWAYS WINS</p>
         <h1 className="bk-title">THE FANTASY BOOK</h1>
-        <p className="bk-sub">Two leagues. Eighteen weeks. One coin-flip sport.</p>
+        <p className="bk-sub">Three leagues. Eighteen weeks. One coin-flip sport.</p>
       </header>
       <div className="group-list" style={{ marginTop: 28 }}>
         {index.map((b) => (
           <a key={b.id} className="group-link" href={`?book=${b.id}`}>
             <div className="gl-name">{b.name}</div>
-            <div className="gl-meta">{b.kind === "crossover" ? "Both leagues, one weekend →" : "Open the book →"}</div>
+            <div className="gl-meta">Open the book →</div>
           </a>
         ))}
       </div>
@@ -116,16 +116,13 @@ function WeekNav({ weeks, cur, onNav }) {
 }
 
 function Sheet({ sheet, prev, weeks, cur, view, onNav }) {
-  const isCrossover = sheet.id === "crossover";
   // Prose for THIS week only. There is deliberately no fallback to last week's
   // file: worldcup's documented failure mode is a sheet that reprices itself and
   // keeps the old words, and inheriting copy is how that happens (DESIGN.md
   // §2.2). No file for this week means no prose, and the generated boards ship
   // exactly as they are.
   const note = loadNote(sheet.id, sheet.week);
-  // The crossover is a single page and ignores `view` — it has no futures board
-  // of its own, only slips derived from two committed league sheets (§6.7).
-  const page = isCrossover ? "crossover" : view;
+  const page = view;
 
   useEffect(() => {
     const label = page === "season" ? seasonTitle(sheet) : `Week ${sheet.week}`;
@@ -143,7 +140,6 @@ function Sheet({ sheet, prev, weeks, cur, view, onNav }) {
   return (
     <>
       <Head sheet={sheet} weeks={weeks} cur={cur} onNav={onNav} page={page} />
-      {page === "crossover" && <Crossover sheet={sheet} />}
       {page === "week" && <Week sheet={sheet} prev={prev} note={note} />}
       {page === "season" && <Season sheet={sheet} prev={prev} note={note} />}
       <FinePrint sheet={sheet} page={page} />
@@ -178,22 +174,15 @@ function Head({ sheet, weeks, cur, onNav, page }) {
         </div>
       )}
       <div className="bk-banner">LINES BUILT FROM {sheet.meta.sources}</div>
-      {page !== "crossover" && weeks.length > 1 && <WeekNav weeks={weeks} cur={cur} onNav={onNav} />}
-      {page !== "crossover" && (
-        <nav className="fb-viewnav">
-          <a className={page === "week" ? "active" : ""} href={`?book=${sheet.id}&w=${sheet.week}`}>
-            THE CARD — WEEK {sheet.week}
-          </a>
-          <a className={page === "season" ? "active" : ""} href={`?book=${sheet.id}&w=${sheet.week}&view=season`}>
-            {seasonTitle(sheet).toUpperCase()}
-          </a>
-        </nav>
-      )}
-      {/* No standing link to the Crossover. It is built by a third pass that runs
-          only when every league has a committed sheet for the week, so it lags —
-          and a permanent chip pointing at a sheet that is quietly a week behind is
-          worse than no chip. It is still a book in the lobby and ?book=crossover
-          still resolves. */}
+      {weeks.length > 1 && <WeekNav weeks={weeks} cur={cur} onNav={onNav} />}
+      <nav className="fb-viewnav">
+        <a className={page === "week" ? "active" : ""} href={`?book=${sheet.id}&w=${sheet.week}`}>
+          THE CARD — WEEK {sheet.week}
+        </a>
+        <a className={page === "season" ? "active" : ""} href={`?book=${sheet.id}&w=${sheet.week}&view=season`}>
+          {seasonTitle(sheet).toUpperCase()}
+        </a>
+      </nav>
       <nav className="fb-booknav">
         <a href="?book">All books</a>
       </nav>
@@ -440,67 +429,18 @@ function Lineup({ seat }) {
   );
 }
 
-// --- The crossover sheet (§6.7) ---------------------------------------------
-
-function Crossover({ sheet }) {
-  return (
-    <>
-      <Panel
-        title="THE HEADLINE"
-        blurb={`${sheet.managers.length} managers hold a seat in both leagues. These slips cannot live on a league sheet — no league's book may read another league's data — so they get their own.`}
-      >
-        <div className="fb-headline">
-          <span>
-            <span className="fb-headline-label">{sheet.headline.label}</span>
-            <span className="fb-headline-copy">{sheet.headline.copy} · {sheet.headline.pct}%</span>
-          </span>
-          <span className="fb-headline-price">{sheet.headline.price}</span>
-        </div>
-      </Panel>
-      {sheet.managers.map((m) => (
-        <Panel
-          key={m.manager}
-          title={m.manager.toUpperCase()}
-          blurb={m.seats.map((s) => `${s.team} (${labelOf(sheet, s.league)})`).join("  ·  ")}
-        >
-          {m.slips.map((s) => (
-            <div key={s.label} className="fb-slip">
-              <span className="fb-slip-text">
-                <b>{s.label}</b>
-                <span className="fb-slip-note">{s.copy} · {s.pct}%</span>
-              </span>
-              <span className="bk-price">{s.price}</span>
-            </div>
-          ))}
-        </Panel>
-      ))}
-    </>
-  );
-}
-
 // --- Fine print (§10) --------------------------------------------------------
 
 function FinePrint({ sheet, page }) {
   return (
     <footer className="bk-fine-block">
       <p className="bk-fine">
-        <b>HOW THE SAUSAGE IS MADE.</b>{" "}
-        {sheet.id === "crossover" ? (
-          <>
-            Every price here is the product of two numbers each league's own sheet already posted. This pass runs no
-            simulation of its own and reads no league's inputs — it only multiplies committed probabilities, which is
-            what keeps the two books independent.
-          </>
-        ) : (
-          <>
-            Every rostered player's projected points come from Sleeper's own weekly projection, scored through this
-            league's exact scoring settings ({sheet.meta.scoringKeys} keys, reproducing Sleeper's published totals to a
-            mean absolute error of {sheet.meta.mae}). Weekly scores are drawn from a Gamma distribution whose spread was
-            fitted on 2025 projection residuals, position by position — a receiver projected for 18 is far more volatile
-            than a quarterback projected for 18, and a pooled number would misprice the top and bottom of every lineup
-            in opposite directions. The week was simulated {sheet.meta.sims.toLocaleString()} times.
-          </>
-        )}
+        <b>HOW THE SAUSAGE IS MADE.</b> Every rostered player's projected points come from Sleeper's own weekly
+        projection, scored through this league's exact scoring settings ({sheet.meta.scoringKeys} keys, reproducing
+        Sleeper's published totals to a mean absolute error of {sheet.meta.mae}). Weekly scores are drawn from a Gamma
+        distribution whose spread was fitted on 2025 projection residuals, position by position — a receiver projected
+        for 18 is far more volatile than a quarterback projected for 18, and a pooled number would misprice the top and
+        bottom of every lineup in opposite directions. The week was simulated {sheet.meta.sims.toLocaleString()} times.
       </p>
       <p className="bk-fine">
         <b>WHAT THIS BOOK CANNOT DO.</b> {sheet.meta.disclosures.join(" ")}
@@ -538,7 +478,6 @@ function FinePrint({ sheet, page }) {
 
 const ordinal = (n) => `${n}${["th", "st", "nd", "rd"][(n % 100 >> 3) ^ 1 && n % 10] || "th"}`;
 
-const labelOf = (sheet, leagueId) => sheet.leagues.find((l) => l.id === leagueId)?.displayName ?? leagueId;
 
 // The same two seats in a prior sheet, re-oriented to this row's a/b order — the
 // favourite can flip week to week, and comparing a price to its own opposite

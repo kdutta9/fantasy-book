@@ -21,7 +21,6 @@ Then open **http://localhost:5173/fantasy/?book=nicks**. The committed sheets ar
 - `?book` — the lobby
 - `?book=nicks` · `?book=dkenasty` · `?book=loog` — a league's newest sheet
 - `?book=nicks&w=6` — a specific week; the week dropdown walks every posted sheet
-- `?book=crossover` — the cross-league sheet
 - every panel is anchorable: `?book=nicks#the-joint-who-sings-what`
 
 Rebuild the sheets from the committed inputs without touching Sleeper:
@@ -73,7 +72,7 @@ not" cannot happen here.
 Tuesday or Wednesday morning ET. **Sheet W settles week W−1 and previews week W.**
 
 ```bash
-npm run refresh          # pull Sleeper, build every league, then the crossover
+npm run refresh          # pull Sleeper, build every league
 npm run notes -- --week <W>   # scaffold the week's prose, then write it
 npm run publish          # guards, commit, build, deploy to kdutta.com/fantasy
 ```
@@ -114,6 +113,7 @@ npm test                 # 101 assertions across scoring, lines, futures, indepe
 | `lines.test` | A broken variance model. Each matchup's simulated win probability must match the closed form implied by the sheet's own projections and `config/variance.json` to within 3 points — measured 0.75 at worst, and 15.7 if the fitted sigmas are halved. Plus points per starter, lineup size, and a rule that nobody outscores their own best available lineup. |
 | `futures.test` | A season board that treats a projection as fact — nobody is a lock to make the playoffs *in week 1*, where that statement means something — the `gp` trap that made every defence worth 95 points a week, and that banked results and simulated ones are the same currency (mean win total is always half the schedule). |
 | `independence.test` | §6.6. Each league builds with every other league's files `chmod 000`, byte-for-byte identically. |
+| `seat-names.test` | Two names for one seat on one sheet. Nothing reprices, so `check-frozen` cannot see it — a mid-season rename did exactly this to the settlement board. |
 
 ## Layout
 
@@ -122,7 +122,6 @@ config/            THE ONLY HUMAN-EDITED FILES
   leagues/*.json     seats, stakes, punishments, lore, name overrides
   variance.json      weekly sigma(mu) per position, fitted on 2025 residuals
   season-variance.json  per-player season-form cv — what makes futures priceable
-  cross-league.json  the six managers with a seat in both leagues
 
 scripts/
   lib/               paths, json, pricing, rng, args, sleeper, slim, seats, book-index
@@ -131,7 +130,6 @@ scripts/
   markets.mjs        draws → priced markets — pure
   pull.mjs           Sleeper → committed inputs
   build-book.mjs     one league, one week, one sheet
-  build-crossover.mjs  runs last, reads only the two committed sheets
   settle.mjs         grades a posted sheet against what happened — pure
   notes.mjs          scaffolds content/<league>/w<N>.md off a built sheet
   refresh.mjs  publish.mjs  check-frozen.mjs  set-proj.mjs  add-league.mjs

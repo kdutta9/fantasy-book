@@ -97,11 +97,12 @@ export function punishmentBoard({ tally, sims, seatOf, punishment }) {
   };
 }
 
-// --- §6.7 The block the crossover pass reads ---------------------------------
-// Each league sheet carries the handful of per-seat probabilities the crossover
-// sheet needs, derived from this league's own sim and changing nothing about how
-// its own markets price. The crossover pass reads these committed numbers — it
-// never runs a sim, and it never reads another league's inputs.
+// --- §6.7 The block the crossover pass read ----------------------------------
+// RETIRED. The Crossover sheet is gone; only Kunal held a seat in more than one
+// of the three leagues once LoOG arrived, and one shared manager is not a
+// cross-league board. This survives for one reason: week 1's sheets were posted
+// carrying this block, and check-frozen rebuilds them. It is dead everywhere
+// else and build-book.mjs gates it on CROSSOVER_THROUGH_WEEK.
 export function crossoverBlock({ rosterIds, scores, sims, seatOf, pairings, tally }) {
   const { low, high } = tally;
   const opponent = new Map(pairings.flatMap(([x, y]) => [[x, y], [y, x]]));

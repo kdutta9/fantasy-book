@@ -100,7 +100,7 @@ test("no upstream change means no change list and no rewrite", () => {
 // Week 1 Performance" while the card, the futures table and the bench board all
 // said "Need TE HMU". Nothing about that is a pricing error, which is precisely
 // why check-frozen could never catch it.
-for (const leagueId of [...allLeagueIds(), "crossover"]) {
+for (const leagueId of allLeagueIds()) {
   const dir = P.bookDir(leagueId);
   if (!existsSync(dir)) continue;
   for (const file of readdirSync(dir).filter((f) => /^w\d+\.json$/.test(f))) {
@@ -111,15 +111,12 @@ for (const leagueId of [...allLeagueIds(), "crossover"]) {
         if (Array.isArray(node)) return node.forEach(walk);
         if (!node || typeof node !== "object") return;
         if (typeof node.rosterId === "number" && typeof node.team === "string") {
-          // Scoped by league, because the Crossover carries seats from two of
-          // them and roster 5 is a different person in each.
-          const key = `${node.league ?? leagueId}:${node.rosterId}`;
-          const seen = names.get(key);
+          const seen = names.get(node.rosterId);
           assert.ok(
             seen === undefined || seen === node.team,
-            `${key} is called both "${seen}" and "${node.team}" on the same sheet`
+            `roster ${node.rosterId} is called both "${seen}" and "${node.team}" on the same sheet`
           );
-          names.set(key, node.team);
+          names.set(node.rosterId, node.team);
         }
         Object.values(node).forEach(walk);
       })(readJson(P.bookFile(leagueId, week)));

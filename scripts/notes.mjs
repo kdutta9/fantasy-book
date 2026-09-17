@@ -143,7 +143,7 @@ const weeksOf = (id) =>
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const only = option("--league", null);
-  const leagueIds = (only ? only.split(",") : allLeagueIds()).filter((id) => id !== "crossover");
+  const leagueIds = only ? only.split(",") : allLeagueIds();
   const force = flag("--force");
 
   if (flag("--check")) {

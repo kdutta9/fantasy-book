@@ -250,7 +250,7 @@ body { margin: 0; background: #0B0B0E; }
 .fb-runner-pct { font-size: 11px; color: rgba(237,232,218,0.45); font-variant-numeric: tabular-nums; min-width: 46px; text-align: right; }
 .fb-bar { display: block; height: 3px; max-width: 100%; border-radius: 2px; background: linear-gradient(90deg, #E4C46A, #8A6E2F); margin: 4px 0 3px; }
 
-/* --- Joint slips, crossover slips --------------------------------------- */
+/* --- Joint slips ---------------------------------------------------------- */
 .fb-slip {
   display: flex; justify-content: space-between; align-items: center; gap: 14px;
   padding: 10px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);

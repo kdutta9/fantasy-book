@@ -33,7 +33,7 @@ run("npm run notes -- --check");
 
 const status = capture("git status --porcelain");
 if (status) {
-  // "nicks w1, dkenasty w1, crossover w1" — the sheets this publish is posting.
+  // "nicks w2, dkenasty w2, loog w2" — the sheets this publish is posting.
   const sheets = status
     .split("\n")
     .map((line) => line.slice(3).match(/public\/data\/books\/([^/]+)\/w(\d+)\.json$/))

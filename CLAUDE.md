@@ -117,10 +117,10 @@ Do not modify anything in `../worldcup`. It is frozen and its build guards must 
     in a committed week-1 sheet and nothing else. Check the diff; if it is not only names,
     something else moved.
 
-## Two pages per league, one for the crossover
+## Two pages per league
 
 `?book=<id>` is the week card; `?book=<id>&view=season` is the season/futures page and
-carries the authored preview prose from each league config. The crossover ignores `view`.
+carries the authored preview prose from each league config.
 Preview prose is written once against the week it cites (`preview.writtenWeek`) and then
 left alone — it is editorial, not a generated market. A `## season` section in that week's
 `content/<league>/w<N>.md` overrides it for that week only; the config block stays the
@@ -132,6 +132,26 @@ coin flip scores, the punishment markets settled by name, and points left on the
 `scripts/settle.mjs` builds it from three committed artifacts belonging to that league
 alone: its own previous sheet, that week's results file, and that week's roster snapshot.
 It is the only place the pipeline reads a book's own prior output, and §6.6 still holds.
+
+## The Crossover is retired
+
+DESIGN.md §6.7 specified a third pass building a cross-league sheet from the two
+committed league sheets, and it shipped for week 1. It was removed in week 2 and the whole
+thing is deleted: `build-crossover.mjs`, `config/cross-league.json`,
+`public/data/books/crossover/`, the lobby entry, the `kind` sort key and the view.
+
+The reason is the one already written into the LoOG note above. Six managers overlapped
+Nick's and DKEnasty, which was a board; only Kunal overlaps LoOG, and one shared seat is
+not. A surface that covers two of three leagues, lags them both because it can only build
+once every league has posted, and needs its own pass in `refresh` is not carrying its
+weight. **Do not rebuild it without a real reason** — a fourth league with genuine overlap
+would be one.
+
+One fragment survives on purpose. Week 1's sheets were posted carrying a `crossover`
+block of per-seat probabilities, so `markets.mjs` still exports `crossoverBlock` and
+`build-book.mjs` emits it for weeks ≤ `CROSSOVER_THROUGH_WEEK` (= 1). Removing a key from
+a frozen artifact is still rewriting it. Delete the two together, and rebuild week 1, if it
+is ever genuinely in the way.
 
 ## Never reprice a posted sheet
 
@@ -171,8 +191,8 @@ unit test in `test/scoring.test.mjs`, which needs no league data at all.
 
 **LoOG gets no lore.** Empty `lore`, flat punishment copy, a two-paragraph factual
 preview. It is not missing content — it is the boring book on purpose. It is also not on
-the Crossover: only kdutta overlaps with the other two, and one shared seat is not a
-cross-league board.
+the Crossover — and as of week 2 neither is anything else, because the Crossover is
+gone. See below.
 
 ## Sanity check on any line you produce
 

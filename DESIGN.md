@@ -580,6 +580,14 @@ future projection files; already-committed weeks are untouched, so no sheet move
 
 ### 6.7 The Crossover — cross-league slips, on their own sheet
 
+> **RETIRED in week 2.** This shipped for week 1 and was then deleted in full. The
+> premise was six managers overlapping the two original leagues; LoOG arrived with only
+> Kunal in common, leaving a surface that covered two books out of three, lagged both
+> because it could only build after every league had posted, and cost a third pass in
+> `refresh`. The section is kept because it records why the dependency ran one way and
+> what §6.6 was protecting — not because the sheet exists. See CLAUDE.md, *The Crossover
+> is retired*.
+
 Six managers play in both leagues (`config/cross-league.json`), and slips like *"kdutta
 wins in both leagues this week"* or *"the same manager is low scorer in both"* — karaoke
 **and** the parlay window in one weekend — are the best material either league has. They
@@ -661,7 +669,6 @@ Routing — same query-param pattern, refresh-safe on static hosting:
   futures boards and win totals. Titled SEASON PREVIEW at week 1; THE FUTURES BOARD from
   week 2, where the prose is labelled with the week it was written.
 - `/fantasy/?book=nicks&w=6` — a specific week (combines with `&view=season`)
-- `/fantasy/?book=crossover` — the cross-league sheet (§6.7). One page; ignores `view`.
 - `/fantasy/?book` — league list
 - `/fantasy/?post=<id>` — house organ, optional
 

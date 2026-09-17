@@ -32,6 +32,7 @@ import { settleWeek } from "./settle.mjs";
 import { option } from "./lib/args.mjs";
 
 export const SIMS = 25000; // §5.5 — below ~10k the tail markets get noisy
+const CROSSOVER_THROUGH_WEEK = 1; // the last week a sheet carried a `crossover` block
 
 export function buildBook({ leagueId, week, sims = SIMS }) {
   const config = readJson(P.leagueConfigPath(leagueId));
@@ -177,7 +178,15 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
       ...seatOf(id),
       projected: Math.round(restLineups.get(id).reduce((sum, p) => sum + p.mu, 0) * 10) / 10,
     })),
-    crossover: crossoverBlock({ rosterIds, scores, sims, seatOf, pairings: matchups, tally }),
+    // The Crossover was retired after week 1, so from week 2 on no sheet carries
+    // the per-seat block it used to read. Week 1's sheets were posted with it and
+    // stay exactly as posted — removing a key from a frozen artifact is still
+    // rewriting it, and `crossoverBlock` survives in markets.mjs for precisely
+    // this one week. Delete both together, and rebuild week 1, if that block is
+    // ever genuinely in the way.
+    ...(week <= CROSSOVER_THROUGH_WEEK
+      ? { crossover: crossoverBlock({ rosterIds, scores, sims, seatOf, pairings: matchups, tally }) }
+      : {}),
     // Spread conditionally, never as `settled: null`. Week 1 has nothing to
     // settle and its committed bytes must not acquire a key — the same rule that
     // gates every other change in meaning on a week number.
