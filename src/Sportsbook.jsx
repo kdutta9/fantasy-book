@@ -91,6 +91,13 @@ function Lobby({ index }) {
 // chat: ?book=nicks#the-joint-who-sings-what
 const slug = (title) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+// A league names its own punishment, so the board says which market it is
+// pricing: "KARAOKE — LOW SCORER", "THE PARLAY WINDOW — LOW SCORER". LoOG has no
+// lore and named its market after the market, which made the suffix stutter —
+// "LOW SCORER OF THE WEEK — LOW SCORER". The label is a disambiguator, so it is
+// dropped where the name already disambiguates.
+const marketTitle = (name, label) => (name.toUpperCase().includes(label) ? name : `${name} — ${label}`);
+
 function Panel({ title, blurb, children }) {
   return (
     <section className="bk-panel" id={slug(title)}>
@@ -243,7 +250,7 @@ function Week({ sheet, prev, note }) {
       </Panel>
 
       <div className={punishment.paired ? "fb-grid2" : ""}>
-        <Panel title={`${punishment.weekly.name} — LOW SCORER`} blurb={punishment.weekly.copy}>
+        <Panel title={marketTitle(punishment.weekly.name, "LOW SCORER")} blurb={punishment.weekly.copy}>
           {slot(note, "punishment") && <Markdown text={slot(note, "punishment")} className="fb-panel-prose" />}
           {punishment.weekly.parlay && (
             <p className="fb-note">
@@ -254,7 +261,7 @@ function Week({ sheet, prev, note }) {
           <Runners rows={punishment.weekly.rows} prevRows={prev?.punishment?.weekly?.rows} />
         </Panel>
         {punishment.paired && (
-          <Panel title={`${punishment.paired.name} — HIGH SCORER`} blurb={punishment.paired.copy}>
+          <Panel title={marketTitle(punishment.paired.name, "HIGH SCORER")} blurb={punishment.paired.copy}>
             {slot(note, "punishment-paired") && (
               <Markdown text={slot(note, "punishment-paired")} className="fb-panel-prose" />
             )}
