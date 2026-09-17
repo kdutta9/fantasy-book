@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The weekly command (DESIGN.md §8.1): pull, then build each league's sheet
-// independently, then the crossover last.
+// independently.
 //
 //   npm run refresh                     # every league, current week
 //   npm run refresh -- --league nicks   # one league, on its own
@@ -17,7 +17,6 @@ import * as P from "./lib/paths.mjs";
 import { fetchState } from "./lib/sleeper.mjs";
 import { allLeagueIds, pull } from "./pull.mjs";
 import { buildBook, writeBook } from "./build-book.mjs";
-import { buildCrossover, writeCrossover } from "./build-crossover.mjs";
 import { flag, option } from "./lib/args.mjs";
 
 
@@ -56,16 +55,6 @@ for (const leagueId of leagueIds) {
     failed.push(leagueId);
     console.error(`✗ ${leagueId} w${week} — ${err.message}`);
   }
-}
-
-// The crossover reads only the two committed sheets. If either is missing it
-// skips the week and says so; it never blocks a league sheet from publishing.
-try {
-  const crossover = buildCrossover({ week });
-  if (crossover) console.log(`✓ crossover w${week} → ${writeCrossover(crossover).replace(P.ROOT + "/", "")}`);
-  else console.log(`· crossover w${week} skipped — needs a committed sheet from every league`);
-} catch (err) {
-  console.error(`✗ crossover w${week} — ${err.message}`);
 }
 
 if (failed.length) {

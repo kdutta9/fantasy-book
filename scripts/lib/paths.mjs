@@ -12,11 +12,21 @@ export const leagueConfigPath = (id) => configPath(join("leagues", `${id}.json`)
 const leagueDir = (id) => join(DATA, "leagues", id);
 export const leagueFile = (id, name) => join(leagueDir(id), `${name}.json`);
 export const leagueWeekFile = (id, week) => join(leagueDir(id), "weeks", `w${week}.json`);
+// Final scores for a week that has already been played. Written once, never
+// re-fetched, and carrying no timestamp — a settled week is immutable, and an
+// input that moved would reprice the sheet that settles it.
+export const leagueResultsFile = (id, week) => join(leagueDir(id), "results", `w${week}.json`);
 
 const projDir = (season) => join(DATA, "projections", String(season));
 export const projFile = (season, week) => join(projDir(season), `w${week}.json`);
 export const projOverridesFile = (season, week) => join(projDir(season), `w${week}.overrides.json`);
+// The rest-of-season projection moves every week exactly like the weekly one
+// does, so it is snapshotted per week like everything else. `season.json` is the
+// un-versioned file week 1 was built against; it is frozen at those bytes and
+// stays the fallback, which is how a week-1 sheet keeps rebuilding identically
+// after this split. Nothing new is ever written to it.
 export const seasonProjFile = (season) => join(projDir(season), "season.json");
+export const seasonProjWeekFile = (season, week) => join(projDir(season), `season-w${week}.json`);
 export const playersFile = (date) => join(DATA, "players", `${date}.json`);
 export const playersDir = join(DATA, "players");
 export const statePath = join(DATA, "state.json");

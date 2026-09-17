@@ -14,7 +14,6 @@ import { basename } from "node:path";
 import { serialize } from "./lib/json.mjs";
 import * as P from "./lib/paths.mjs";
 import { buildBook } from "./build-book.mjs";
-import { buildCrossover } from "./build-crossover.mjs";
 
 const committedWeeks = (leagueId) =>
   existsSync(P.bookDir(leagueId))
@@ -31,7 +30,7 @@ const bookIds = existsSync(P.booksRoot)
 let failures = 0;
 let checked = 0;
 
-for (const id of bookIds.filter((b) => b !== "crossover")) {
+for (const id of bookIds) {
   for (const week of committedWeeks(id)) {
     checked++;
     const rebuilt = serialize(buildBook({ leagueId: id, week }));
@@ -40,17 +39,6 @@ for (const id of bookIds.filter((b) => b !== "crossover")) {
     if (!ok) failures++;
     console.log(`${ok ? "PASS" : "FAIL"}  ${id} w${week}`);
   }
-}
-
-// The crossover is rebuilt from the two frozen sheets, so it is covered by the
-// same guard without needing a sim of its own (§6.7).
-for (const week of committedWeeks("crossover")) {
-  checked++;
-  const rebuilt = buildCrossover({ week });
-  const committed = readFileSync(P.bookFile("crossover", week), "utf8");
-  const ok = rebuilt != null && serialize(rebuilt) === committed;
-  if (!ok) failures++;
-  console.log(`${ok ? "PASS" : "FAIL"}  crossover w${week}`);
 }
 
 console.log(`\n${checked - failures}/${checked} sheets rebuild byte-identical.`);

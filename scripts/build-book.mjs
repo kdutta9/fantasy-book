@@ -5,8 +5,14 @@
 //   config/variance.json                        config/season-variance.json
 //   public/data/leagues/<id>/{weeks/w<W>,schedule,bracket}.json
 //   public/data/projections/<season>/w<W>.json  (+ .overrides.json)
-//   public/data/projections/<season>/season.json
+//   public/data/projections/<season>/season-w<W>.json  (season.json for week 1)
 //   public/data/players/<playersDate>.json      (named by the week file)
+//
+// plus, from week 2 on, this same league's own settled history (settle.mjs):
+//
+//   public/data/books/<id>/w<W-1>.json          the lines it posted last week
+//   public/data/leagues/<id>/results/w<W-1>.json
+//   public/data/leagues/<id>/weeks/w<W-1>.json
 //
 // and nothing else. No other league's data, no clock, no network. That is what
 // makes check-frozen a real test rather than a ritual: rebuild, compare bytes.
@@ -22,9 +28,11 @@ import { seedFor } from "./lib/rng.mjs";
 import { optimalLineup, projectedPoints, tallyExtremes } from "./engine.mjs";
 import { simulateSeason } from "./season.mjs";
 import { crossoverBlock, matchupBoard, punishmentBoard, seasonBoard } from "./markets.mjs";
+import { settleWeek } from "./settle.mjs";
 import { option } from "./lib/args.mjs";
 
 export const SIMS = 25000; // §5.5 — below ~10k the tail markets get noisy
+const CROSSOVER_THROUGH_WEEK = 1; // the last week a sheet carried a `crossover` block
 
 export function buildBook({ leagueId, week, sims = SIMS }) {
   const config = readJson(P.leagueConfigPath(leagueId));
@@ -47,7 +55,13 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
   // a per-game rate, not off this week's. Using this week's for all fourteen
   // would bake week 1's byes and scratches into the whole season: a seat whose
   // RB1 is out on Sunday would be modelled as having no RB1 until Christmas.
-  const perGame = perGameProjections(readJson(P.seasonProjFile(season)));
+  // Week 1 predates the per-week split and has no season-w1.json, so it falls
+  // through to the frozen season.json it was posted against. A week-scoped file
+  // wins wherever one exists — same shape as `latestSince`: the change in what
+  // this input means is gated, never switched on globally.
+  const perGame = perGameProjections(
+    readJsonIf(P.seasonProjWeekFile(season, week)) ?? readJson(P.seasonProjFile(season))
+  );
 
   const positionOf = (id) => players[id]?.p ?? null;
   const lineupsFor = (source) => {
@@ -82,6 +96,7 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
     variance,
     seasonVariance,
     schedule: schedule.weeks,
+    record: bankedRecord(rosters),
     week,
     throughWeek,
     bracket,
@@ -91,12 +106,13 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
   });
   const tally = tallyExtremes(rosterIds, scores, sims);
 
-  const resolve = seatResolver(config, users);
+  const resolve = seatResolver(config, users, week);
   const ownerOf = new Map(rosters.map((r) => [r.roster_id, r.owner_id]));
   const seatOf = (id) => resolve(id, ownerOf.get(id));
   const projectionOf = (id) => lineups.get(id).reduce((sum, p) => sum + p.mu, 0);
 
   const punishment = punishmentBoard({ tally, sims, seatOf, punishment: config.punishment.weekly });
+  const settled = settlePriorWeek({ leagueId, week, seatOf });
 
   return {
     id: leagueId,
@@ -162,9 +178,63 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
       ...seatOf(id),
       projected: Math.round(restLineups.get(id).reduce((sum, p) => sum + p.mu, 0) * 10) / 10,
     })),
-    crossover: crossoverBlock({ rosterIds, scores, sims, seatOf, pairings: matchups, tally }),
+    // The Crossover was retired after week 1, so from week 2 on no sheet carries
+    // the per-seat block it used to read. Week 1's sheets were posted with it and
+    // stay exactly as posted — removing a key from a frozen artifact is still
+    // rewriting it, and `crossoverBlock` survives in markets.mjs for precisely
+    // this one week. Delete both together, and rebuild week 1, if that block is
+    // ever genuinely in the way.
+    ...(week <= CROSSOVER_THROUGH_WEEK
+      ? { crossover: crossoverBlock({ rosterIds, scores, sims, seatOf, pairings: matchups, tally }) }
+      : {}),
+    // Spread conditionally, never as `settled: null`. Week 1 has nothing to
+    // settle and its committed bytes must not acquire a key — the same rule that
+    // gates every other change in meaning on a week number.
+    ...(settled ? { settled } : {}),
   };
 }
+
+// Week 1 has no prior sheet; a league onboarded mid-season has no prior sheet
+// either. Both are ordinary, so a missing input here means "no settlement
+// block", not an error.
+function settlePriorWeek({ leagueId, week, seatOf }) {
+  const prior = week - 1;
+  if (prior < 1) return null;
+  const sheet = readJsonIf(P.bookFile(leagueId, prior));
+  const results = readJsonIf(P.leagueResultsFile(leagueId, prior));
+  const snapshot = readJsonIf(P.leagueWeekFile(leagueId, prior));
+  if (!sheet || !results || !snapshot) return null;
+  // Rosters as they stood THAT week, scored against the player map of that
+  // week — a player dropped on Tuesday is still the player who was benched on
+  // Sunday, and today's file may no longer carry him.
+  return settleWeek({
+    week: prior,
+    sheet,
+    results,
+    snapshot,
+    players: readJson(P.playersFile(snapshot.playersDate)),
+    seatOf,
+  });
+}
+
+// Sleeper's own standings as of the pull, which is the authority for what has
+// already happened — derived here rather than re-tallied from the results files
+// so the book's record and the app's record can never disagree. `fpts` is an
+// integer with the hundredths in `fpts_decimal`; reassembling it wrong would
+// quietly shift every points-for tiebreak in the simulated season.
+//
+// At week 1 every field is zero, so this changes nothing about an already-posted
+// opening sheet — which is why it needs no `since` gate.
+const bankedRecord = (rosters) =>
+  new Map(
+    rosters.map((r) => [
+      r.roster_id,
+      {
+        wins: (r.settings?.wins ?? 0) + 0.5 * (r.settings?.ties ?? 0),
+        points: (r.settings?.fpts ?? 0) + (r.settings?.fpts_decimal ?? 0) / 100,
+      },
+    ])
+  );
 
 // The regression guard, carried on every sheet rather than run once: the dot
 // product must reproduce Sleeper's own pts_ppr (CLAUDE.md trap 1). Nick's

@@ -11,11 +11,11 @@ export function addWeek(bookId, week) {
   writeJson(path, index);
 }
 
-// `kind` orders the lobby: leagues first, the crossover last. It is a sort key,
-// not a type switch — the view renders every entry the same way.
-export function registerBook({ id, name, bookName, kind = "league" }) {
+// Every book in the lobby is a league now, so the entries sort by id and carry
+// no `kind`. That field only ever existed to keep the Crossover last.
+export function registerBook({ id, name, bookName }) {
   const books = readJsonIf(P.booksIndexFile, []).filter((b) => b.id !== id);
-  books.push({ id, name, bookName, kind });
-  books.sort((a, b) => (a.kind === b.kind ? a.id.localeCompare(b.id) : a.kind === "league" ? -1 : 1));
+  books.push({ id, name, bookName });
+  books.sort((a, b) => a.id.localeCompare(b.id));
   writeJson(P.booksIndexFile, books);
 }

@@ -23,9 +23,17 @@ console.log("→ Guards");
 run("npm run check-frozen");
 run("npm test");
 
+// Worldcup's documented failure mode is "prices reprice themselves, the words do
+// not", and the defence here is that prose lives outside the sheet entirely — a
+// week with no file simply has no prose rather than inheriting last week's. That
+// makes forgetting silent, so publish says so. It is a NOTICE, never a gate: the
+// boards are the product and they ship complete without a word written.
+console.log("\n→ Editorial");
+run("npm run notes -- --check");
+
 const status = capture("git status --porcelain");
 if (status) {
-  // "nicks w1, dkenasty w1, crossover w1" — the sheets this publish is posting.
+  // "nicks w2, dkenasty w2, loog w2" — the sheets this publish is posting.
   const sheets = status
     .split("\n")
     .map((line) => line.slice(3).match(/public\/data\/books\/([^/]+)\/w(\d+)\.json$/))

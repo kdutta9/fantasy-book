@@ -122,10 +122,19 @@
     {
       "rosterId": 5,
       "manager": "Christopheryu21",
-      "teamName": null,
-      "nameOverride": "Cal's Disappointing Week 1 Performance",
-      "nameOverrideNote": "TEMPORARY. Chris never set a team name, and Cal lost to UCLA in week 1. He is the biggest Cal fan alive. Set nameOverride back to null to revert — nothing else in the pipeline depends on it.",
-      "nameOverrideSince": 1
+      "teamName": "Need TE HMU",
+      "nameOverrides": [
+        {
+          "since": 1,
+          "name": "Cal's Disappointing Week 1 Performance",
+          "note": "Chris had never set a team name and Cal lost to UCLA on opening weekend. He is the biggest Cal fan alive."
+        },
+        {
+          "since": 2,
+          "name": null,
+          "note": "He set one: \"Need TE HMU\". The joke stays on the week it was true; from here the sheet prints what Sleeper says."
+        }
+      ]
     },
     {
       "rosterId": 6,

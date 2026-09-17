@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "pull": "node scripts/pull.mjs",
     "build-book": "node scripts/build-book.mjs",
+    "notes": "node scripts/notes.mjs",
     "refresh": "node scripts/refresh.mjs",
     "check-frozen": "node scripts/check-frozen.mjs",
     "set-proj": "node scripts/set-proj.mjs",

@@ -204,13 +204,6 @@ body { margin: 0; background: #0B0B0E; }
 .bk-settled.locked { color: #7FE3A8; border-color: rgba(127,227,168,0.35); background: rgba(127,227,168,0.08); }
 .bk-settled.dead { color: rgba(237,232,218,0.4); border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
 
-/* Line movement chart */
-.bk-chart { width: 100%; height: auto; margin-top: 12px; display: block; }
-.bk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; }
-.bk-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(237,232,218,0.75); }
-.bk-leg b { color: #E4C46A; font-weight: 700; }
-.bk-leg-swatch { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
-
 /* --- THE CARD — the weekly matchup board, new to this book -------------- */
 .fb-card { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .fb-match {
@@ -257,7 +250,7 @@ body { margin: 0; background: #0B0B0E; }
 .fb-runner-pct { font-size: 11px; color: rgba(237,232,218,0.45); font-variant-numeric: tabular-nums; min-width: 46px; text-align: right; }
 .fb-bar { display: block; height: 3px; max-width: 100%; border-radius: 2px; background: linear-gradient(90deg, #E4C46A, #8A6E2F); margin: 4px 0 3px; }
 
-/* --- Joint slips, crossover slips --------------------------------------- */
+/* --- Joint slips ---------------------------------------------------------- */
 .fb-slip {
   display: flex; justify-content: space-between; align-items: center; gap: 14px;
   padding: 10px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -414,6 +407,104 @@ body { margin: 0; background: #0B0B0E; }
 .fb-note { color: rgba(237,232,218,0.5); font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
 .fb-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 .fb-grid2 .bk-panel { margin-top: 22px; }
+
+/* --- THE RECKONING — settlement, and the book grading itself ------------ */
+/* The settled board deliberately reuses .fb-seats / .fb-cell so last week's row
+   sits in the same grid as this week's. A reader compares them by eye; two
+   different layouts would make that work. */
+.fb-settled {
+  display: grid; grid-template-columns: 1fr 90px 90px 90px; align-items: center;
+  gap: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 12px 16px;
+}
+.fb-settled-head {
+  display: grid; grid-template-columns: 1fr 90px 90px 90px; gap: 10px;
+  padding: 0 16px 6px; font-size: 10px; letter-spacing: 0.22em;
+  color: rgba(237,232,218,0.4); font-weight: 700;
+}
+.fb-settled-head span:not(:first-child), .fb-settled > .fb-cell { text-align: center; }
+.fb-settled .fb-odds { color: rgba(237,232,218,0.55); border-color: rgba(255,255,255,0.1); font-size: 13px; }
+.fb-settled-sub { font-size: 9px; letter-spacing: 0.12em; font-weight: 700; color: rgba(237,232,218,0.4); text-transform: uppercase; }
+.fb-mark { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
+.fb-mark.hit { color: #7FE3A8; }
+.fb-mark.miss { color: #E8806B; }
+.fb-mark.push { color: rgba(237,232,218,0.45); font-size: 9px; }
+
+.fb-report { margin-top: 20px; border-top: 1px solid rgba(201,162,75,0.2); padding-top: 16px; }
+.fb-report-title { font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: 0.18em; color: #C9A24B; margin: 0 0 12px; }
+.fb-report-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.fb-report-cell {
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px;
+}
+.fb-report-num { font-family: 'Anton', sans-serif; font-size: 26px; color: #E4C46A; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.fb-report-label { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; color: rgba(237,232,218,0.45); }
+.fb-report-note { font-size: 11px; color: rgba(237,232,218,0.4); line-height: 1.45; margin-top: 2px; }
+
+.fb-verdict {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  padding: 12px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.fb-verdict:last-of-type { border-bottom: none; }
+.fb-bench { display: flex; flex-direction: column; margin-top: 10px; }
+.fb-bench-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+  padding: 8px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.fb-bench-row:last-child { border-bottom: none; }
+.fb-bench-row.lead .fb-runner-team { color: #E8806B; }
+.fb-bench-main { display: flex; flex-direction: column; min-width: 0; }
+
+/* --- The editorial layer (content/<league>/w<N>.md) ---------------------- */
+.fb-lede { border-left: 3px solid #C9A24B; }
+.fb-byline {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.22em; color: rgba(201,162,75,0.8);
+  text-transform: uppercase; margin: 16px 0 0;
+}
+/* Prose inside a board panel is a note, not a column: one measure, no justify,
+   and visibly quieter than the numbers it is annotating. */
+.fb-panel-prose { margin: 12px 0 4px; max-width: 72ch; }
+.fb-match.noted { grid-template-areas: none; }
+.fb-match-note {
+  grid-column: 1 / -1; margin-top: 8px; padding-top: 10px;
+  border-top: 1px dashed rgba(201,162,75,0.22);
+}
+.fb-match-note .md-p, .fb-panel-prose .md-p {
+  font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; line-height: 1.65;
+  color: rgba(242,239,230,0.7); margin: 0 0 10px;
+}
+.fb-match-note .md-p:last-child, .fb-panel-prose .md-p:last-child { margin-bottom: 0; }
+
+.md-p {
+  margin: 0 0 14px;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 15.5px; line-height: 1.75;
+  color: rgba(242,239,230,0.74); text-align: justify; hyphens: auto;
+}
+.fb-prose-cols .md-p:first-child::first-line {
+  font-variant-caps: small-caps; letter-spacing: 0.04em; color: rgba(242,239,230,0.92);
+}
+.md-h3 { font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: 0.16em; color: #C9A24B; margin: 0 0 8px; break-after: avoid; }
+.md-list { margin: 0 0 14px; padding-left: 20px; font-family: Georgia, serif; font-size: 15px; line-height: 1.7; color: rgba(242,239,230,0.74); }
+.md-list li { margin-bottom: 5px; }
+.md-quote {
+  margin: 0 0 14px; padding: 8px 0 8px 16px; border-left: 2px solid rgba(201,162,75,0.5);
+  font-family: Georgia, serif; font-size: 16px; line-height: 1.6; color: rgba(242,239,230,0.88); font-style: italic;
+}
+.md-hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 18px 0; }
+.md-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; color: #E4C46A; }
+.md-p strong, .md-list strong { color: rgba(242,239,230,0.95); font-weight: 700; }
+@media (max-width: 900px) {
+  .fb-prose-cols .md-p { text-align: left; hyphens: manual; }
+}
+@media (max-width: 820px) {
+  .fb-settled, .fb-settled-head { grid-template-columns: 1fr 74px 74px; }
+  .fb-settled .fb-cell.total, .fb-settled-head span.total { display: none; }
+  .fb-report-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .fb-settled, .fb-settled-head { grid-template-columns: 1fr 68px; }
+  .fb-settled .fb-cell.spread, .fb-settled-head span.spread { display: none; }
+}
 
 @media (max-width: 820px) {
   .fb-match, .fb-match-head { grid-template-columns: 1fr 74px 74px; }
