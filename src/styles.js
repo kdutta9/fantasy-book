@@ -204,13 +204,6 @@ body { margin: 0; background: #0B0B0E; }
 .bk-settled.locked { color: #7FE3A8; border-color: rgba(127,227,168,0.35); background: rgba(127,227,168,0.08); }
 .bk-settled.dead { color: rgba(237,232,218,0.4); border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
 
-/* Line movement chart */
-.bk-chart { width: 100%; height: auto; margin-top: 12px; display: block; }
-.bk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; }
-.bk-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(237,232,218,0.75); }
-.bk-leg b { color: #E4C46A; font-weight: 700; }
-.bk-leg-swatch { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
-
 /* --- THE CARD — the weekly matchup board, new to this book -------------- */
 .fb-card { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .fb-match {

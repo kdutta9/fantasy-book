@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadBook, loadBooksIndex } from "./data";
-import { LineMovement, PriceMove } from "./movement";
+import { PriceMove } from "./movement";
 import Futures from "./Futures";
 import Settled from "./Settled";
 import { Markdown } from "./markdown";
@@ -54,7 +54,6 @@ export default function Sportsbook({ bookId, week, view }) {
             sheet={state.sheets[cur]}
             prev={cur > 0 ? state.sheets[cur - 1] : null}
             weeks={state.weeks}
-            sheets={state.sheets}
             cur={cur}
             view={view}
             onNav={setCur}
@@ -116,7 +115,7 @@ function WeekNav({ weeks, cur, onNav }) {
   );
 }
 
-function Sheet({ sheet, prev, weeks, sheets, cur, view, onNav }) {
+function Sheet({ sheet, prev, weeks, cur, view, onNav }) {
   const isCrossover = sheet.id === "crossover";
   // Prose for THIS week only. There is deliberately no fallback to last week's
   // file: worldcup's documented failure mode is a sheet that reprices itself and
@@ -145,7 +144,7 @@ function Sheet({ sheet, prev, weeks, sheets, cur, view, onNav }) {
     <>
       <Head sheet={sheet} weeks={weeks} cur={cur} onNav={onNav} page={page} />
       {page === "crossover" && <Crossover sheet={sheet} />}
-      {page === "week" && <Week sheet={sheet} prev={prev} sheets={sheets} weeks={weeks} cur={cur} note={note} />}
+      {page === "week" && <Week sheet={sheet} prev={prev} note={note} />}
       {page === "season" && <Season sheet={sheet} prev={prev} note={note} />}
       <FinePrint sheet={sheet} page={page} />
     </>
@@ -207,7 +206,7 @@ function Head({ sheet, weeks, cur, onNav, page }) {
 // page so that a reader looking for "who do I play and am I favoured" does not
 // have to scroll past seven futures ladders to find out.
 
-function Week({ sheet, prev, sheets, weeks, cur, note }) {
+function Week({ sheet, prev, note }) {
   const { punishment } = sheet;
   return (
     <>
@@ -253,8 +252,6 @@ function Week({ sheet, prev, sheets, weeks, cur, note }) {
           ))}
         </div>
       </Panel>
-
-      {sheets.length > 1 && <LineMovement weeks={weeks} sheets={sheets} cur={cur} />}
 
       <div className={punishment.paired ? "fb-grid2" : ""}>
         <Panel title={`${punishment.weekly.name} — LOW SCORER`} blurb={punishment.weekly.copy}>

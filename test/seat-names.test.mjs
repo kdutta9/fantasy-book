@@ -5,6 +5,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mergeSeatNames, seatResolver } from "../scripts/lib/seats.mjs";
+import { readdirSync, existsSync } from "node:fs";
+import { basename } from "node:path";
+import { readJson } from "../scripts/lib/json.mjs";
+import * as P from "../scripts/lib/paths.mjs";
+import { allLeagueIds } from "../scripts/pull.mjs";
 
 const rosters = [
   { roster_id: 1, owner_id: "u1" },
@@ -87,3 +92,37 @@ test("no upstream change means no change list and no rewrite", () => {
   const { changes } = mergeSeatNames(seats, users, rosters);
   assert.equal(changes.length, 0);
 });
+
+
+// A sheet spells each seat exactly one way. The settlement block copies seats out
+// of the PREVIOUS week's sheet, so a mid-season rename put both names for Nick's
+// roster 5 on the same page — the settled board still said "Cal's Disappointing
+// Week 1 Performance" while the card, the futures table and the bench board all
+// said "Need TE HMU". Nothing about that is a pricing error, which is precisely
+// why check-frozen could never catch it.
+for (const leagueId of [...allLeagueIds(), "crossover"]) {
+  const dir = P.bookDir(leagueId);
+  if (!existsSync(dir)) continue;
+  for (const file of readdirSync(dir).filter((f) => /^w\d+\.json$/.test(f))) {
+    const week = Number(basename(file, ".json").slice(1));
+    test(`${leagueId} w${week}: one seat, one name across the whole sheet`, () => {
+      const names = new Map();
+      (function walk(node) {
+        if (Array.isArray(node)) return node.forEach(walk);
+        if (!node || typeof node !== "object") return;
+        if (typeof node.rosterId === "number" && typeof node.team === "string") {
+          // Scoped by league, because the Crossover carries seats from two of
+          // them and roster 5 is a different person in each.
+          const key = `${node.league ?? leagueId}:${node.rosterId}`;
+          const seen = names.get(key);
+          assert.ok(
+            seen === undefined || seen === node.team,
+            `${key} is called both "${seen}" and "${node.team}" on the same sheet`
+          );
+          names.set(key, node.team);
+        }
+        Object.values(node).forEach(walk);
+      })(readJson(P.bookFile(leagueId, week)));
+    });
+  }
+}

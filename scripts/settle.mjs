@@ -20,10 +20,18 @@ import { optimalLineup } from "./engine.mjs";
 // whole of it: a sheet that only ever prints forward-looking prices can never
 // be caught being wrong, which is exactly why nobody would believe it.
 export function settleWeek({ week, sheet, results, snapshot, players, seatOf }) {
+  // Every seat copied out of last week's sheet is re-resolved through THIS
+  // sheet's names. Without it a settled board prints whatever a seat was called
+  // last week while the boards under it print what it is called now — which is
+  // exactly what happened when Nick's roster 5 renamed itself between sheets and
+  // one panel ended up carrying both names for one seat. A settled result is a
+  // fact about a roster id; the name beside it is just how this sheet spells it.
+  const rename = (seat) => (seat?.rosterId == null ? seat : { ...seat, ...seatOf(seat.rosterId) });
+
   const pointsOf = new Map(results.rosters.map((r) => [r.rosterId, r.points]));
   const projectedOf = new Map(sheet.lineups.map((l) => [l.rosterId, l.projected]));
 
-  const matchups = sheet.matchups.map((m) => settleMatchup(m, pointsOf));
+  const matchups = sheet.matchups.map((m) => settleMatchup(m, pointsOf, rename));
   const scored = [...pointsOf].map(([rosterId, points]) => ({ ...seatOf(rosterId), points }));
   const ranked = [...scored].sort((a, b) => b.points - a.points);
 
@@ -37,9 +45,9 @@ export function settleWeek({ week, sheet, results, snapshot, players, seatOf }) 
     // boards are the most-read thing on the sheet; whether they were right is
     // the most-read thing about last week's.
     punishment: {
-      low: settleRunners(sheet.punishment.weekly, ranked[ranked.length - 1]),
-      high: sheet.punishment.paired ? settleRunners(sheet.punishment.paired, ranked[0]) : null,
-      joint: settleJoint(sheet.punishment.joints, ranked[0], ranked[ranked.length - 1]),
+      low: settleRunners(sheet.punishment.weekly, ranked[ranked.length - 1], rename),
+      high: sheet.punishment.paired ? settleRunners(sheet.punishment.paired, ranked[0], rename) : null,
+      joint: settleJoint(sheet.punishment.joints, ranked[0], ranked[ranked.length - 1], rename),
     },
     // §5.4's measured bias, finally measurable: every line on the sheet assumed
     // an optimal lineup, and nobody sets one.
@@ -57,15 +65,15 @@ export function settleWeek({ week, sheet, results, snapshot, players, seatOf }) 
 // A posted row plus two final scores. `pA` is the pre-vig probability the sheet
 // priced off, not the −170 it printed, so the Brier score grades the model
 // rather than the margin.
-function settleMatchup(m, pointsOf) {
+function settleMatchup(m, pointsOf, rename) {
   const a = pointsOf.get(m.a.rosterId) ?? null;
   const b = pointsOf.get(m.b.rosterId) ?? null;
-  if (a == null || b == null) return { ...m, played: false };
+  if (a == null || b == null) return { ...m, a: rename(m.a), b: rename(m.b), played: false };
   const margin = round(a - b);
   const total = round(a + b);
   return {
-    a: { ...m.a, points: a },
-    b: { ...m.b, points: b },
+    a: { ...rename(m.a), points: a },
+    b: { ...rename(m.b), points: b },
     played: true,
     posted: { moneyline: m.moneyline, spread: m.spread, total: m.total },
     margin,
@@ -113,9 +121,9 @@ function reportCard(matchups) {
 // Where the settled seat finished on the board that priced it. A +630 shot
 // landing is the best thing that can happen to a punishment market and it should
 // be printed as loudly as the price was.
-function settleRunners(board, actual) {
+function settleRunners(board, actual, rename) {
   if (!board?.rows?.length) return null;
-  const rows = [...board.rows].sort((a, b) => b.pct - a.pct);
+  const rows = board.rows.map(rename).sort((a, b) => b.pct - a.pct);
   const at = rows.findIndex((r) => r.rosterId === actual.rosterId);
   const row = at >= 0 ? rows[at] : null;
   return {
@@ -132,10 +140,11 @@ function settleRunners(board, actual) {
 
 // The joint is the best slip on the sheet, so whether it came in is worth a line
 // of its own — including the near-misses, which are the funnier outcome.
-function settleJoint(joints, high, low) {
+function settleJoint(joints, high, low, rename) {
   if (!joints?.length) return null;
-  const hit = joints.find((j) => j.low.rosterId === low.rosterId && j.high.rosterId === high.rosterId) ?? null;
-  return { hit, offered: joints.length, low, high };
+  const at = joints.find((j) => j.low.rosterId === low.rosterId && j.high.rosterId === high.rosterId) ?? null;
+  const hit = at && { ...at, low: rename(at.low), high: rename(at.high) };
+  return { hit: hit ?? null, offered: joints.length, low, high };
 }
 
 // The gap between the lineup a manager set and the one the model assumed they
