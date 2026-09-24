@@ -23,9 +23,9 @@ import { readJson, readJsonIf, writeJson } from "./lib/json.mjs";
 import { addWeek, registerBook } from "./lib/book-index.mjs";
 import * as P from "./lib/paths.mjs";
 import { seatResolver } from "./lib/seats.mjs";
-import { DISCLOSURES, sourcesLine } from "./lib/disclosures.mjs";
+import { disclosuresFor, sourcesLine } from "./lib/disclosures.mjs";
 import { seedFor } from "./lib/rng.mjs";
-import { optimalLineup, projectedPoints, tallyExtremes } from "./engine.mjs";
+import { fillFromWaivers, optimalLineup, projectedPoints, tallyExtremes } from "./engine.mjs";
 import { simulateSeason } from "./season.mjs";
 import { crossoverBlock, matchupBoard, punishmentBoard, seasonBoard } from "./markets.mjs";
 import { settleWeek } from "./settle.mjs";
@@ -33,6 +33,10 @@ import { option } from "./lib/args.mjs";
 
 export const SIMS = 25000; // §5.5 — below ~10k the tail markets get noisy
 const CROSSOVER_THROUGH_WEEK = 1; // the last week a sheet carried a `crossover` block
+// The first week an unfillable slot is priced at waiver replacement level rather
+// than as a zero (engine.mjs, fillFromWaivers). Weeks 1–2 were posted with
+// forfeits and stay that way.
+const WAIVER_FILL_SINCE_WEEK = 3;
 
 export function buildBook({ leagueId, week, sims = SIMS }) {
   const config = readJson(P.leagueConfigPath(leagueId));
@@ -64,23 +68,28 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
   );
 
   const positionOf = (id) => players[id]?.p ?? null;
+  const waiverFill = week >= WAIVER_FILL_SINCE_WEEK;
+  // This league's rosters only: a player owned in another league is still a
+  // free agent here (§6.6).
+  const rostered = new Set(rosters.flatMap((r) => r.players));
   const lineupsFor = (source) => {
     const cache = new Map();
     const muOf = (id) => {
       if (!cache.has(id)) cache.set(id, projectedPoints(league.scoring_settings, source[id]));
       return cache.get(id);
     };
+    const freeAgents = Object.keys(source).filter((id) => !rostered.has(id));
     return new Map(
-      rosters.map((r) => [
-        r.roster_id,
-        optimalLineup({
+      rosters.map((r) => {
+        const lineup = optimalLineup({
           playerIds: r.players,
           excluded: new Set([...r.reserve, ...r.taxi]), // §5.3 — neither is lineup-eligible
           muOf,
           positionOf,
           rosterPositions: league.roster_positions,
-        }),
-      ])
+        });
+        return [r.roster_id, waiverFill ? fillFromWaivers(lineup, { freeAgents, muOf, positionOf }) : lineup];
+      })
     );
   };
   const lineups = lineupsFor(projections);
@@ -140,7 +149,7 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
       throughWeek,
       mae: scoringMae(league.scoring_settings, projections),
       overrides: Object.values(overrides).map(({ player, was, pts, note }) => ({ player, was, pts, note })),
-      disclosures: DISCLOSURES,
+      disclosures: disclosuresFor({ waiverFill }),
     },
     matchups: matchupBoard({ pairings: matchups, scores, sims, seatOf, projectionOf }),
     punishment: {
@@ -166,6 +175,7 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
         position: p.position,
         team: p.id == null ? null : players[p.id]?.t ?? null,
         mu: Math.round(p.mu * 10) / 10,
+        ...(p.waiver ? { waiver: true } : {}),
       })),
       // Named on the sheet: a forfeited slot is worth ~8 points and it is the
       // single biggest thing moving this seat's line.

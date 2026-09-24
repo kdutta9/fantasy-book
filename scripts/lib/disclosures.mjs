@@ -15,5 +15,13 @@ export const DISCLOSURES = [
   "Not real betting.",
 ];
 
+// From WAIVER_FILL_SINCE_WEEK (build-book.mjs) the first line stops being true
+// as written: an unfillable slot is priced off the waiver wire. Weeks already
+// posted keep the line they were posted with.
+const WAIVER_FILL_LINE =
+  "Rosters frozen as of the pull — trades and pickups after it are not priced. A slot nobody on the roster can play is priced at the best free agent eligible for it, and marked waivers.";
+
+export const disclosuresFor = ({ waiverFill }) => (waiverFill ? [WAIVER_FILL_LINE, ...DISCLOSURES.slice(1)] : DISCLOSURES);
+
 export const sourcesLine = (sims) =>
   `SLEEPER PROJECTIONS · ${(sims / 1000).toFixed(0)}K SIMS · VARIANCE FIT ON 2025 RESIDUALS`;

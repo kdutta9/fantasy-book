@@ -421,11 +421,17 @@ function Lineup({ seat }) {
           <span className="fb-slot-tag">{p.slot}</span>
           <span className="fb-slot-name">
             {p.name ?? "no eligible player"}
-            {p.name && <small> {p.position} {p.team}</small>}
+            {p.name && <small> {p.position} {p.team}{p.waiver && " · waivers"}</small>}
           </span>
           <span className="fb-slot-mu">{p.mu.toFixed(1)}</span>
         </div>
       ))}
+      {seat.players.some((p) => p.waiver) && (
+        <p className="fb-warn">
+          Nobody on the roster can play {seat.players.filter((p) => p.waiver).map((p) => p.slot).join(", ")}. Priced as
+          if he claims the best free agent there — he has not, and until he does this line is generous to him.
+        </p>
+      )}
       {seat.emptySlots.length > 0 && (
         <p className="fb-warn">
           Forfeits {seat.emptySlots.join(", ")} — nobody on the roster is eligible. Worth roughly eight points, and it is

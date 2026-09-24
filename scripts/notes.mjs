@@ -71,6 +71,7 @@ export function scaffold({ leagueId, week }) {
   section(out, "lineups", [
     `highest projected: ${[...sheet.lineups].sort((a, b) => b.projected - a.projected)[0].team}`,
     `forfeited slots: ${sheet.lineups.filter((l) => l.emptySlots.length).map((l) => `${l.team} (${l.emptySlots.join(", ")})`).join("; ") || "none"}`,
+    `priced off waivers: ${sheet.lineups.flatMap((l) => l.players.filter((p) => p.waiver).map((p) => `${l.team} ${p.slot} ${p.name} ${p.mu}`)).join("; ") || "none"}`,
   ]);
 
   out.push("## The Film Room");

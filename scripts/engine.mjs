@@ -79,6 +79,34 @@ export function optimalLineup({ playerIds, excluded, muOf, positionOf, rosterPos
   return lineup.sort((a, b) => a.at - b.at);
 }
 
+// --- Waiver replacement (build-book gates this from week 3) ------------------
+// A slot the roster cannot fill is priced as the best free agent eligible for
+// it, rather than as a zero. Week 3 is why: Trust the Process had Jayden Daniels
+// ruled out and Kirk Cousins' backup behind him, and pricing the QB slot at zero
+// posted a -2400 line on a manager who can claim a starter any day before Sunday.
+//
+// Replacement level, not a claim: each seat is filled from the whole pool
+// independently, so two seats short a QB both get the same free agent. Any
+// tie-break that gave him to one of them would be arbitrary and would move the
+// other's line on roster order. Marked `waiver: true` so the sheet never passes
+// a player off as rostered.
+export function fillFromWaivers(lineup, { freeAgents, muOf, positionOf }) {
+  if (!lineup.some((p) => p.id == null)) return lineup;
+  const pool = freeAgents
+    .map((id) => ({ id, mu: muOf(id), position: positionOf(id) }))
+    .filter((p) => p.mu > 0)
+    .sort((a, b) => b.mu - a.mu || (a.id < b.id ? -1 : 1));
+  const used = new Set();
+  return lineup.map((p) => {
+    if (p.id != null) return p;
+    const eligible = eligibleFor(p.slot);
+    const pick = pool.find((f) => !used.has(f.id) && eligible.has(f.position));
+    if (!pick) return p; // nobody on waivers either — still a forfeit
+    used.add(pick.id);
+    return { ...pick, slot: p.slot, at: p.at, waiver: true };
+  });
+}
+
 // --- Drawing a team's week (§5.3) --------------------------------------------
 // A lineup is compiled once into (mu, sigma) pairs so the hot loop does no
 // lookups. Empty slots are dropped here rather than drawn as zero: they carry no

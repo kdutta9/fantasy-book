@@ -215,6 +215,17 @@ Measured agreement across all six committed sheets is **0.75 points at worst** a
 3-point tolerance; halving the fitted sigmas moves it to 15.7 and fails. A loose 90%
 backstop remains, because nothing in this sport is a lock.
 
+**From week 3 an empty lineup slot is priced off the waiver wire, not at zero.** Trust the
+Process (DKEnasty) had Daniels ruled out and a backup QB with no projection; the zero
+priced a 90.6% line that matched its closed form to 0.01 and still tripped the backstop.
+Kunal chose to price the best free agent eligible for the slot (`fillFromWaivers` in
+`engine.mjs`, gated by `WAIVER_FILL_SINCE_WEEK` in `build-book.mjs`, which also swaps the
+first disclosure line). The pool is this league's projections minus this league's rosters,
+so §6.6 holds; each seat is filled independently (replacement level, not a claim), and the
+player carries `waiver: true` so the view never passes him off as rostered. The known
+cost: it prices a roster the manager does not have — Chris was a −150 *favourite* in Nick's
+week 3 on a Bo Nix he never claimed. Weeks 1–2 keep their forfeits.
+
 If a price ever disagrees with its own closed form, the variance model is not being
 applied as priced — most likely `config/variance.json` isn't loaded, or you summed the
 wrong number of starters. A −400 moneyline on its own is no longer evidence of anything;

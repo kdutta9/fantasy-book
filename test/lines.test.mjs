@@ -9,7 +9,7 @@ import { basename } from "node:path";
 import { readJson } from "../scripts/lib/json.mjs";
 import * as P from "../scripts/lib/paths.mjs";
 import { allLeagueIds } from "../scripts/pull.mjs";
-import { sigmaFor } from "../scripts/engine.mjs";
+import { fillFromWaivers, sigmaFor } from "../scripts/engine.mjs";
 
 // Lineup size, weekly totals and the price ceiling are all properties of the
 // LEAGUE, not constants: LoOG starts nine (one FLEX, ten teams) and so runs
@@ -135,3 +135,23 @@ for (const leagueId of allLeagueIds()) {
     });
   }
 }
+
+// Week 3: an unfillable slot is priced at waiver replacement level (engine.mjs).
+test("fillFromWaivers: prices an empty slot as the best eligible free agent", () => {
+  const mu = { qbA: 17, qbB: 19, wr: 25 };
+  const pos = { qbA: "QB", qbB: "QB", wr: "WR", rb: "RB" };
+  const deps = { freeAgents: ["qbA", "qbB", "wr"], muOf: (id) => mu[id] ?? 0, positionOf: (id) => pos[id] };
+  const lineup = [
+    { id: null, mu: 0, position: null, slot: "QB", at: 0 },
+    { id: "rb", mu: 12, position: "RB", slot: "RB", at: 1 },
+  ];
+  const filled = fillFromWaivers(lineup, deps);
+  assert.deepEqual(filled[0], { id: "qbB", mu: 19, position: "QB", slot: "QB", at: 0, waiver: true });
+  assert.equal(filled[1], lineup[1]);
+
+  const full = [lineup[1]];
+  assert.equal(fillFromWaivers(full, deps), full);
+
+  const kicker = [{ id: null, mu: 0, position: null, slot: "K", at: 0 }];
+  assert.deepEqual(fillFromWaivers(kicker, deps), kicker, "nobody eligible on waivers either — still a forfeit");
+});
