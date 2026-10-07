@@ -59,7 +59,13 @@
       "market": "lastPlace",
       "copy": "Season loser does a punishment commissioner Lane has still not invented, having spent the offseason proposing dogshit trades instead. MBurnes — who already owes one from last season and has been in no rush whatsoever to see it specified — opens as the favourite to owe a second.",
       "commissionerRosterId": 1,
-      "commissioner": "lanek12"
+      "commissioner": "lanek12",
+      "copySince": [
+        {
+          "since": 5,
+          "copy": "Season loser does a punishment commissioner Lane has yet to name. He has, at last, named the old ones: the 2024 and 2025 losers, Tal and Burnes, owe a milk mile in Costa Rica, date to be confirmed. Burnes is out of arrears the moment he crosses the line, and opens as the favourite to owe again."
+        }
+      ]
     },
     "weekly": {
       "name": "THE PARLAY WINDOW",
@@ -83,7 +89,7 @@
     {
       "rosterId": 1,
       "manager": "lanek12",
-      "teamName": "Tal top Smitty bottom",
+      "teamName": "Lane Doe",
       "nameOverride": null
     },
     {
@@ -138,7 +144,7 @@
     {
       "rosterId": 10,
       "manager": "ethansmith2580",
-      "teamName": "ETN SZN",
+      "teamName": "‘22 LA Rams ",
       "nameOverride": null
     },
     {
