@@ -25,6 +25,7 @@ import * as P from "./lib/paths.mjs";
 import { seatResolver } from "./lib/seats.mjs";
 import { disclosuresFor, sourcesLine } from "./lib/disclosures.mjs";
 import { seedFor } from "./lib/rng.mjs";
+import { latestSince } from "./lib/pricing.mjs";
 import { fillFromWaivers, optimalLineup, projectedPoints, tallyExtremes } from "./engine.mjs";
 import { simulateSeason } from "./season.mjs";
 import { crossoverBlock, matchupBoard, punishmentBoard, seasonBoard } from "./markets.mjs";
@@ -121,6 +122,13 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
   const projectionOf = (id) => lineups.get(id).reduce((sum, p) => sum + p.mu, 0);
 
   const punishment = punishmentBoard({ tally, sims, seatOf, punishment: config.punishment.weekly });
+  // Season-punishment copy is a timeline, read like nameOverrides: an entry in
+  // `copySince` replaces the copy from its week on, so a sheet that already
+  // printed the old words keeps printing them. DKEnasty week 5 is why: Lane
+  // finally enforced the 2024/2025 punishments, and weeks 1-4 said he hadn't.
+  const { copySince, ...seasonBase } = config.punishment.season;
+  const seasonPunishment = { ...seasonBase, ...(latestSince(copySince, week) ?? {}) };
+  delete seasonPunishment.since;
   const settled = settlePriorWeek({ leagueId, week, seatOf });
 
   return {
@@ -156,7 +164,7 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
       weekly: punishment.low,
       paired: punishment.paired,
       joints: punishment.joints,
-      season: { name: config.punishment.season.name, copy: config.punishment.season.copy },
+      season: { name: seasonPunishment.name, copy: seasonPunishment.copy },
     },
     futures: seasonBoard({
       rosterIds,
@@ -164,7 +172,7 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
       sims,
       seatOf,
       stakes: config.stakes,
-      seasonPunishment: config.punishment.season,
+      seasonPunishment,
     }),
     lineups: rosterIds.map((id) => ({
       ...seatOf(id),

@@ -13,7 +13,7 @@ import * as P from "../scripts/lib/paths.mjs";
 import { allLeagueIds } from "../scripts/pull.mjs";
 
 // Sheets the fixed title ceiling is known to be wrong about. See kdutta9/fantasy-book#2.
-const TITLE_CEILING_EXEMPT = { "dkenasty w4": 27 };
+const TITLE_CEILING_EXEMPT = { "dkenasty w4": 27, "dkenasty w5": 27 };
 
 const weeksOf = (id) =>
   existsSync(P.bookDir(id))

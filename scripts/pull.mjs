@@ -80,7 +80,10 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, f
     await pullLeagueResults({ id, config: configs[id], week, season, log });
   }
 
-  writeJson(P.statePath, { season, week, pulledAt, leagues: leagueIds });
+  // A `--league` pull touches one league, so it must not shrink the list of the others.
+  const prior = existsSync(P.statePath) ? readJson(P.statePath) : null;
+  const leagues = [...new Set([...(prior?.season === season ? prior.leagues : []), ...leagueIds])].sort();
+  writeJson(P.statePath, { season, week, pulledAt, leagues });
   return { season, week, playersDate, pulledAt };
 }
 
@@ -236,23 +239,60 @@ async function pullLeagueResults({ id, config, week, season, log }) {
   for (let w = 1; w < week; w++) if (!existsSync(P.leagueResultsFile(id, w))) wanted.push(w);
   if (!wanted.length) return;
   for (const w of wanted) {
-    const rows = await sleeper.fetchMatchups(config.sleeperLeagueId, w);
+    const { rosters, repairs } = repairReversedTrades(await sleeper.fetchMatchups(config.sleeperLeagueId, w));
+    for (const r of repairs) log(`${id}: week ${w} roster ${r.rosterId} started ${r.players.join(", ")} off another roster — rescored ${r.from} → ${r.to}`);
     writeJson(P.leagueResultsFile(id, w), {
       id,
       season,
       week: w,
-      rosters: rows
-        .map((r) => ({
-          rosterId: r.roster_id,
-          matchupId: r.matchup_id,
-          points: r.points ?? 0,
-          starters: r.starters ?? [],
-          playerPoints: sortedByKey(r.players_points ?? {}),
-        }))
-        .sort((a, b) => a.rosterId - b.rosterId),
+      rosters,
+      ...(repairs.length ? { repairs } : {}),
     });
   }
   log(`${id}: final scores for week${wanted.length > 1 ? "s" : ""} ${wanted.join(", ")}`);
+}
+
+// A commissioner-reversed trade leaves Sleeper's matchup rows inconsistent with
+// themselves. Nick's week 4: a Wednesday trade was reversed the following
+// Tuesday, and Sleeper rewrote each side's `starters` back to the pre-trade
+// players while leaving `players_points` keyed to the traded rosters and
+// `points` stale. Kobe's row "started" Purdy, Nabers and Bowers for 0 and lost;
+// the league's own standings have him 4-0 with those 63.42 points counted.
+//
+// The repair follows the standings: a starter is scored wherever Sleeper scored
+// him that week, and moves into the pool of the roster that started him. A
+// player's points do not depend on whose roster he is on. Every results file
+// before this one is a no-op under it, and test/results.test.mjs reconciles each
+// league's summed results against Sleeper's own season totals to the cent.
+export function repairReversedTrades(rows) {
+  const scored = new Map();
+  for (const r of rows) for (const [player, pts] of Object.entries(r.players_points ?? {})) scored.set(player, pts);
+  const startedBy = new Map();
+  for (const r of rows) for (const player of r.starters ?? []) if (player !== "0") startedBy.set(player, r.roster_id);
+
+  const repairs = [];
+  const rosters = rows
+    .map((r) => {
+      const own = r.players_points ?? {};
+      const moved = (r.starters ?? []).filter((p) => p !== "0" && !(p in own) && scored.has(p));
+      const row = {
+        rosterId: r.roster_id,
+        matchupId: r.matchup_id,
+        points: r.points ?? 0,
+        starters: r.starters ?? [],
+        playerPoints: own,
+      };
+      if (!moved.length) return { ...row, playerPoints: sortedByKey(own) };
+      const playerPoints = Object.fromEntries(
+        Object.entries(own).filter(([p]) => (startedBy.get(p) ?? r.roster_id) === r.roster_id)
+      );
+      for (const p of moved) playerPoints[p] = scored.get(p);
+      const points = Math.round(row.starters.reduce((s, p) => s + (playerPoints[p] ?? 0), 0) * 100) / 100;
+      repairs.push({ rosterId: r.roster_id, players: moved, from: row.points, to: points });
+      return { ...row, points, playerPoints: sortedByKey(playerPoints) };
+    })
+    .sort((a, b) => a.rosterId - b.rosterId);
+  return { rosters, repairs: repairs.sort((a, b) => a.rosterId - b.rosterId) };
 }
 
 const sortedByKey = (obj) => Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]]));

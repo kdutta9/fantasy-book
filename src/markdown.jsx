@@ -18,7 +18,12 @@ export function Markdown({ text, className }) {
 function renderBlock(block) {
   const lines = block.split("\n");
 
-  if (/^###\s/.test(lines[0])) return <h3 key={key()} className="md-h3">{inline(lines[0].replace(/^###\s+/, ""))}</h3>;
+  // A subhead owns only its own line. Whatever follows it without a blank line
+  // is still content, and used to be dropped silently.
+  if (/^###\s/.test(lines[0])) {
+    const head = <h3 key={key()} className="md-h3">{inline(lines[0].replace(/^###\s+/, ""))}</h3>;
+    return lines.length > 1 ? [head, renderBlock(lines.slice(1).join("\n"))] : head;
+  }
   if (/^(---|\*\*\*)$/.test(lines[0].trim())) return <hr key={key()} className="md-hr" />;
 
   if (lines.every((l) => /^>\s?/.test(l))) {

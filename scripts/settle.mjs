@@ -165,15 +165,20 @@ function benchBoard({ results, snapshot, players, seatOf }) {
     // available lineup" came out 14.5 points below the lineup he actually
     // played. The question this panel asks is what was startable at lock, which
     // is exactly the set `players_points` is keyed by.
+    //
+    // The same trap has a second door: IR and taxi come from that same Tuesday
+    // snapshot, and a player activated mid-week is still on them. Puka Nacua was
+    // on The Warren Ukraine's IR on Tuesday of LoOG week 4 and started for 27.7.
+    // Anyone who started was startable, whatever the snapshot says.
+    const started = new Set(result.starters);
     const best = optimalLineup({
       playerIds: Object.keys(result.playerPoints),
-      excluded: new Set([...roster.reserve, ...roster.taxi]),
+      excluded: new Set([...roster.reserve, ...roster.taxi].filter((id) => !started.has(id))),
       muOf: scoredOf,
       positionOf: (id) => players[id]?.p ?? null,
       rosterPositions: snapshot.league.roster_positions,
     });
     const bestPoints = best.reduce((sum, p) => sum + p.mu, 0);
-    const started = new Set(result.starters);
     const missed = best
       .filter((p) => p.id && !started.has(p.id))
       .map((p) => ({ name: players[p.id]?.n ?? p.id, position: p.position, points: round(p.mu) }))
