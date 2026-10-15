@@ -93,8 +93,14 @@
     {
       "rosterId": 1,
       "manager": "lanek12",
-      "teamName": "Lane Doe",
-      "nameOverride": null
+      "teamName": "Tal top Smitty bottom",
+      "nameOverride": null,
+      "renames": [
+        {
+          "since": 5,
+          "name": "Lane Doe"
+        }
+      ]
     },
     {
       "rosterId": 2,
@@ -148,8 +154,14 @@
     {
       "rosterId": 10,
       "manager": "ethansmith2580",
-      "teamName": "‘22 LA Rams ",
-      "nameOverride": null
+      "teamName": "ETN SZN",
+      "nameOverride": null,
+      "renames": [
+        {
+          "since": 5,
+          "name": "‘22 LA Rams "
+        }
+      ]
     },
     {
       "rosterId": 11,
@@ -161,7 +173,13 @@
       "rosterId": 12,
       "manager": "BotBinLaden",
       "teamName": "Saddam Hussein Al-B’esnoy",
-      "nameOverride": null
+      "nameOverride": null,
+      "renames": [
+        {
+          "since": 6,
+          "name": "K9 FentPack"
+        }
+      ]
     }
   ],
   "preview": {

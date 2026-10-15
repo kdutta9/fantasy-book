@@ -98,8 +98,14 @@
     {
       "rosterId": 4,
       "manager": "Zregi4",
-      "teamName": "Skat in LaPorta Potty",
-      "nameOverride": null
+      "teamName": null,
+      "nameOverride": null,
+      "renames": [
+        {
+          "since": 2,
+          "name": "Skat in LaPorta Potty"
+        }
+      ]
     },
     {
       "rosterId": 5,

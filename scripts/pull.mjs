@@ -34,7 +34,7 @@ export const allLeagueIds = () =>
 // so a refresh does make already-posted sheets stale until they are rebuilt. That
 // is why this is opt-in rather than part of every pull: `npm run refresh --
 // --refresh-names` refreshes and rebuilds in one go, which is the intended path.
-async function refreshLeagueNames({ leagueIds, configs, log }) {
+async function refreshLeagueNames({ leagueIds, configs, week, log }) {
   let total = 0;
   for (const id of leagueIds) {
     const config = configs[id];
@@ -42,7 +42,7 @@ async function refreshLeagueNames({ leagueIds, configs, log }) {
       sleeper.fetchUsers(config.sleeperLeagueId),
       sleeper.fetchRosters(config.sleeperLeagueId),
     ]);
-    const { seats, changes } = mergeSeatNames(config.seats, users, rosters);
+    const { seats, changes } = mergeSeatNames(config.seats, users, rosters, week);
     if (!changes.length) {
       log(`${id}: names already current`);
       continue;
@@ -53,7 +53,7 @@ async function refreshLeagueNames({ leagueIds, configs, log }) {
     for (const c of changes) log(`    ${describeChange(c)}`);
     total += changes.length;
   }
-  if (total) log(`\n${total} name(s) changed — rebuild the affected sheets so they match config.`);
+  if (total) log(`\n${total} name(s) changed — rebuild week ${week} so it picks them up. Earlier weeks keep their names.`);
   return total;
 }
 
@@ -70,7 +70,7 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, f
   const settings = {};
   for (const id of everyId) settings[id] = await sleeper.fetchLeague(configs[id].sleeperLeagueId);
 
-  if (refreshNames) await refreshLeagueNames({ leagueIds, configs, log });
+  if (refreshNames) await refreshLeagueNames({ leagueIds, configs, week, log });
 
   const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), forceInputs, log });
   const playersDate = await pullPlayers({ leagueIds: everyId, configs, projected, log });

@@ -2,7 +2,7 @@ import { latestSince } from "./pricing.mjs";
 
 // roster_id → the names a sheet prints. config/leagues/<id>.json is the only
 // human-edited file, so it is the ONLY source of team names: an override first,
-// then the teamName add-league seeded from Sleeper at onboarding. The committed
+// then the seat's team name AS OF THE SHEET'S WEEK. The committed
 // pull deliberately carries no team_name (see pull.mjs), so an upstream rename —
 // or an upstream name a human has overruled — cannot leak back onto a sheet.
 // A team name really can be absent, so display_name is the last resort.
@@ -19,6 +19,14 @@ import { latestSince } from "./pricing.mjs";
 // Rewriting week 1 to say "Need TE HMU" would make a posted sheet lie about what
 // it said at the time, which is the freeze rule applied to words instead of
 // prices.
+//
+// Upstream renames get the same treatment, for the same reason. `teamName` is the
+// name the seat opened the season with, and `renames` is a timeline of what
+// Sleeper said from each week on, so week 3 keeps printing week 3's name after the
+// manager has changed it twice. Renaming is part of fantasy football; a posted
+// sheet should record what the seat was called that week, not what it's called
+// now. Before this, `teamName` was overwritten in place, and every rebuild of
+// a past week quietly put today's name on it.
 export function seatResolver(config, users, week) {
   const byUser = new Map(users.map((u) => [u.user_id, u]));
   const byRoster = new Map(config.seats.map((s) => [s.rosterId, s]));
@@ -28,7 +36,7 @@ export function seatResolver(config, users, week) {
     return {
       rosterId,
       manager: seat.manager ?? user.display_name ?? "?",
-      team: overrideFor(seat, week) ?? seat.teamName ?? user.display_name ?? `Roster ${rosterId}`,
+      team: overrideFor(seat, week) ?? teamNameFor(seat, week) ?? user.display_name ?? `Roster ${rosterId}`,
     };
   };
 }
@@ -39,11 +47,21 @@ export function seatResolver(config, users, week) {
 const overrideFor = (seat, week) =>
   seat.nameOverrides ? (week == null ? null : latestSince(seat.nameOverrides, week)?.name ?? null) : seat.nameOverride ?? null;
 
+// The upstream name in effect for `week`: the latest rename on or before it, or
+// the opening `teamName`. A rename to null (a manager clearing his team name) is
+// honoured, not skipped. No week means the current name.
+export const teamNameFor = (seat, week) => {
+  const rename = latestSince(seat.renames, week ?? Infinity);
+  return rename ? rename.name : seat.teamName ?? null;
+};
+
 // Neither form of override is ever touched by a refresh — see below.
 
 // Sleeper team names change mid-season and add-league only seeds them once, so
 // without a refresh every rename is a hand edit of the config. This re-reads what
-// Sleeper currently says for each seat and reports what moved.
+// Sleeper currently says for each seat and reports what moved. A rename is
+// recorded as taking effect from `week`, the week being pulled, and never
+// rewrites the name an earlier week printed.
 //
 // It never touches `nameOverride` or `nameOverrides`. They exist precisely to overrule
 // Sleeper — a slur the book refuses to print, a joke the house made — and a
@@ -53,7 +71,8 @@ const overrideFor = (seat, week) =>
 //
 // Pure: takes the current seats and Sleeper's answer, returns new seats plus a
 // human-readable change list. The caller decides whether to write.
-export function mergeSeatNames(seats, users, rosters) {
+export function mergeSeatNames(seats, users, rosters, week) {
+  if (!Number.isInteger(week)) throw new Error("mergeSeatNames needs the week a rename takes effect from");
   const byUser = new Map(users.map((u) => [u.user_id, u]));
   const ownerOf = new Map(rosters.map((r) => [r.roster_id, r.owner_id]));
   const changes = [];
@@ -73,15 +92,17 @@ export function mergeSeatNames(seats, users, rosters) {
       changes.push({ rosterId: seat.rosterId, kind: "manager", from: seat.manager, to: user.display_name });
       next.manager = user.display_name;
     }
-    if (teamName !== seat.teamName) {
+    const current = teamNameFor(seat);
+    if (teamName !== current) {
       changes.push({
         rosterId: seat.rosterId,
         kind: "team",
-        from: seat.teamName,
+        from: current,
         to: teamName,
         overridden: overrideFor(seat, Infinity),
       });
-      next.teamName = teamName;
+      // Renamed twice before one sheet is posted: the later name wins that week.
+      next.renames = [...(seat.renames ?? []).filter((r) => r.since !== week), { since: week, name: teamName }];
     }
     return next;
   });

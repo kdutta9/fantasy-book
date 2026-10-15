@@ -111,11 +111,17 @@ Do not modify anything in `../worldcup`. It is frozen and its build guards must 
     the time — the freeze rule applied to words. The timeline keeps week 1 byte-identical
     and prints the real name from week 2.
 
-    An upstream rename with no override attached is different and is simply rebuilt:
-    `pull --refresh-names` picks it up, and CLAUDE.md's own §4.3b position holds — names
-    are display-only, and LoOG roster 4's rename diffed to exactly eighteen `team` fields
-    in a committed week-1 sheet and nothing else. Check the diff; if it is not only names,
-    something else moved.
+    **An upstream rename is gated too, by the week it was pulled.** This used to say a
+    rename was "simply rebuilt", and that rewrote history: `teamName` was overwritten in
+    place, so posting week 5 put "Lane Doe" and "'22 LA Rams" on DKEnasty's weeks 1–4.
+    Kunal's rule (2026-10-15): renames are part of fantasy football, and each sheet shows
+    what the seat was called *that week*. `teamName` is now the opening name, and
+    `pull --refresh-names` appends `{ since: <week pulled>, name }` to a per-seat
+    `renames` timeline, read through `teamNameFor` in `scripts/lib/seats.mjs`. Rebuild
+    only the current week afterwards; `check-frozen` stays green with no history rebuild.
+    The 2026 history was backfilled from each sheet's first-posted version in git. A
+    rename can also reorder tied rows (standings ties break on team name), so check that
+    the diff is names and tie order, and nothing else.
 
 ## Two pages per league
 

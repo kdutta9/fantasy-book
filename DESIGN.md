@@ -265,13 +265,16 @@ One module owns the field list.
 
 Managers rename teams mid-season and `add-league` seeds names only once, so without
 a refresh every rename is a hand edit. `npm run refresh -- --refresh-names` (or
-`npm run pull -- --refresh-names`) re-reads each seat's `manager` and `teamName`
-from Sleeper into config and prints what moved.
+`npm run pull -- --refresh-names`) re-reads each seat's `manager` and team name
+from Sleeper into config and prints what moved. A rename is recorded as taking
+effect from the week being pulled: `teamName` is the opening name and each rename
+appends `{ since, name }` to the seat's `renames` timeline, so a past week keeps
+printing what the seat was called that week.
 
 It never touches **`nameOverride`**. That field is how the book deliberately
 overrules Sleeper — a name it refuses to print, a joke the house made — and a
 refresh that clobbered one would silently undo a human decision. The upstream name
-is still recorded in `teamName`, so an override can be dropped later without
+is still recorded in the `renames` timeline, so an override can be dropped later without
 another fetch, and the change log says so explicitly:
 
 ```
@@ -280,9 +283,9 @@ dkenasty: 1 name change(s)
 ```
 
 **Names are display-only and provably move no price** — a rename diffs to exactly
-the `team` fields and nothing else — but a committed sheet rebuilds from config,
-so refreshing names does make posted sheets stale until rebuilt. That is why
-`refresh` runs the rebuild in the same command.
+the `team` fields (and the order of tied rows, which break on name) and nothing
+else. Because the rename is gated on its week, only the current sheet rebuilds;
+every posted week is untouched and `check-frozen` stays green.
 
 **The input freeze.** Once any book has a sheet for week W, `pull` re-fetches
 neither that week's projections nor any league's week-W snapshot. Sleeper's numbers

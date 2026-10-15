@@ -4,7 +4,7 @@
 // refresh that clobbered one would silently undo a decision a human made.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mergeSeatNames, seatResolver } from "../scripts/lib/seats.mjs";
+import { mergeSeatNames, seatResolver, teamNameFor } from "../scripts/lib/seats.mjs";
 import { readdirSync, existsSync } from "node:fs";
 import { basename } from "node:path";
 import { readJson } from "../scripts/lib/json.mjs";
@@ -21,21 +21,48 @@ const users = [
   { user_id: "u2", display_name: "tal262000", metadata: { team_name: "Downsyndrome Njigbas" } },
 ];
 
-test("picks up an upstream rename into teamName", () => {
+test("picks up an upstream rename from the week it was pulled", () => {
   const seats = [{ rosterId: 1, manager: "kdutta", teamName: null, nameOverride: null }];
-  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
-  assert.equal(out[0].teamName, "T-Posers");
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters, 6);
+  assert.equal(teamNameFor(out[0]), "T-Posers");
   assert.equal(changes.length, 1);
   assert.equal(changes[0].kind, "team");
 });
 
+test("a rename never reaches a week before it was pulled", () => {
+  // Renames are part of fantasy football, and a posted sheet records what the
+  // seat was called that week. Overwriting teamName in place put "Lane Doe" on
+  // DKEnasty's weeks 1-4 when week 5 was posted.
+  const seats = [{ rosterId: 1, manager: "kdutta", teamName: "Opening Name", nameOverride: null }];
+  const { seats: once } = mergeSeatNames(seats, users, rosters, 4);
+  const renamed = [{ user_id: "u1", display_name: "kdutta", metadata: { team_name: "Third Name" } }];
+  const { seats: twice } = mergeSeatNames(once, renamed, rosters, 9);
+  const at = (week) => seatResolver({ seats: twice }, users, week)(1, "u1").team;
+  assert.equal(at(1), "Opening Name");
+  assert.equal(at(3), "Opening Name");
+  assert.equal(at(4), "T-Posers");
+  assert.equal(at(8), "T-Posers");
+  assert.equal(at(9), "Third Name");
+  assert.equal(twice[0].teamName, "Opening Name", "the opening name was overwritten");
+});
+
+test("renamed twice before a sheet is posted: the later name wins that week", () => {
+  const seats = [{ rosterId: 1, manager: "kdutta", teamName: "Opening Name", renames: [{ since: 6, name: "First Try" }] }];
+  const { seats: out } = mergeSeatNames(seats, users, rosters, 6);
+  assert.deepEqual(out[0].renames, [{ since: 6, name: "T-Posers" }]);
+});
+
+test("a refresh without a week is refused rather than rewriting history", () => {
+  assert.throws(() => mergeSeatNames([], users, rosters));
+});
+
 test("NEVER touches nameOverride, and the sheet keeps printing the override", () => {
   const seats = [{ rosterId: 2, manager: "tal262000", teamName: null, nameOverride: "The DNs" }];
-  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters, 6);
   assert.equal(out[0].nameOverride, "The DNs", "the override was modified");
   // The upstream name IS recorded, so the override can be dropped later without
   // another fetch — but it must not reach the sheet.
-  assert.equal(out[0].teamName, "Downsyndrome Njigbas");
+  assert.equal(teamNameFor(out[0]), "Downsyndrome Njigbas");
   assert.equal(changes[0].overridden, "The DNs");
   const resolve = seatResolver({ seats: out }, [{ user_id: "u2", display_name: "tal262000" }], 1);
   assert.equal(resolve(2, "u2").team, "The DNs", "an overridden seat must still print the override");
@@ -67,29 +94,29 @@ test("a refresh never touches a gated override either", () => {
   const seats = [
     { rosterId: 2, manager: "tal262000", teamName: null, nameOverrides: [{ since: 1, name: "The DNs" }] },
   ];
-  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters, 6);
   assert.deepEqual(out[0].nameOverrides, [{ since: 1, name: "The DNs" }], "the timeline was modified");
-  assert.equal(out[0].teamName, "Downsyndrome Njigbas");
+  assert.equal(teamNameFor(out[0]), "Downsyndrome Njigbas");
   assert.equal(changes[0].overridden, "The DNs", "the change log must say what is still being displayed");
 });
 
 test("a manager change is reported separately from a team rename", () => {
   const seats = [{ rosterId: 1, manager: "old-handle", teamName: "T-Posers", nameOverride: null }];
-  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters, 6);
   assert.equal(out[0].manager, "kdutta");
   assert.deepEqual(changes.map((c) => c.kind), ["manager"]);
 });
 
 test("an unowned roster is left alone rather than blanked", () => {
   const seats = [{ rosterId: 3, manager: "departed", teamName: "Some Team", nameOverride: null }];
-  const { seats: out, changes } = mergeSeatNames(seats, users, rosters);
+  const { seats: out, changes } = mergeSeatNames(seats, users, rosters, 6);
   assert.equal(out[0].teamName, "Some Team");
   assert.equal(changes[0].kind, "unowned");
 });
 
 test("no upstream change means no change list and no rewrite", () => {
   const seats = [{ rosterId: 1, manager: "kdutta", teamName: "T-Posers", nameOverride: null }];
-  const { changes } = mergeSeatNames(seats, users, rosters);
+  const { changes } = mergeSeatNames(seats, users, rosters, 6);
   assert.equal(changes.length, 0);
 });
 
