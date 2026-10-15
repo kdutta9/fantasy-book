@@ -12,9 +12,6 @@ import { readJson } from "../scripts/lib/json.mjs";
 import * as P from "../scripts/lib/paths.mjs";
 import { allLeagueIds } from "../scripts/pull.mjs";
 
-// Sheets the fixed title ceiling is known to be wrong about. See kdutta9/fantasy-book#2.
-const TITLE_CEILING_EXEMPT = { "dkenasty w4": 27, "dkenasty w5": 27 };
-
 const weeksOf = (id) =>
   existsSync(P.bookDir(id))
     ? readdirSync(P.bookDir(id))
@@ -37,35 +34,40 @@ for (const leagueId of allLeagueIds()) {
       }
     });
 
-    test(`${leagueId} w${week}: nobody is a lock to make the playoffs in week ${week}`, () => {
-      // 6 of 12 make it. A PRESEASON favourite belongs in the 55-75% range; the
-      // model that produced 96% was treating a projection as fact for 14 weeks.
-      // Lives on the standings table now that the playoffs ladder was folded in
-      // — it was the same ranking as the championship board (rho 0.97).
-      //
-      // The tight bound is asserted at week 1 ONLY, and deliberately so. It is a
-      // statement about the preseason, and week-1 sheets are frozen forever, so
-      // it goes on being a permanent regression test of the season-variance
-      // model. Applying a preseason constant to a later week is the same
-      // category error the −400 moneyline ceiling made: by week 2 DKEnasty's
-      // best roster was 1-0 and eight points a week clear of the field, and 85.8%
-      // to make a six-of-twelve field is not evidence of anything being broken.
-      // Later weeks get an absurdity bound and nothing more.
-      const odds = book.futures.standings.map((r) => r.playoffs).sort((a, b) => b - a);
-      assert.ok(odds[0] < (week === 1 ? 85 : 95), `favourite is ${odds[0]}% to make the playoffs`);
-      assert.ok(odds.at(-1) > 10, `longshot is ${odds.at(-1)}% to make the playoffs`);
-    });
+    // The preseason bounds. Both are asserted at week 1 ONLY (kdutta9/fantasy-book#2).
+    // They are statements about a season nobody has played yet, and week-1 sheets
+    // are frozen forever, so they stay a permanent regression test of the
+    // season-variance model — the thing that stops "make the playoffs" pricing at
+    // −1300 before a snap.
+    //
+    // Applied to a later week they are the same category error the −400 moneyline
+    // ceiling made. Banked results legitimately concentrate the odds: The DNs at
+    // 3-0 and 10.6 pts/wk clear were 26.0% to win a winner-take-all league in week
+    // 4, and Kobe at 5-0 and 6.9 pts/wk clear was 97.4% to make the playoffs in
+    // week 6. Each tripped a fixed ceiling and each was the model being right.
+    //
+    // There is deliberately no mid-season absurdity bound either: a clinch makes
+    // 100% correct and an elimination makes 0% correct, so any fixed bound is the
+    // next false failure on a calendar. Later weeks are guarded by the coherence
+    // tests around this one — fields sum, wins average to half the schedule,
+    // every finish distribution is a distribution.
+    if (week === 1) {
+      test(`${leagueId} w1: nobody is a lock to make the playoffs in the preseason`, () => {
+        // 6 of 12 make it. A preseason favourite belongs in the 55-75% range; the
+        // model that produced 96% was treating a projection as fact for 14 weeks.
+        // Lives on the standings table now that the playoffs ladder was folded in
+        // — it was the same ranking as the championship board (rho 0.97).
+        const odds = book.futures.standings.map((r) => r.playoffs).sort((a, b) => b - a);
+        assert.ok(odds[0] < 85, `favourite is ${odds[0]}% to make the playoffs`);
+        assert.ok(odds.at(-1) > 10, `longshot is ${odds.at(-1)}% to make the playoffs`);
+      });
 
-    test(`${leagueId} w${week}: the title board is a twelve-horse race`, () => {
-      const rows = market("championship").rows;
-      // Stopgap, not a policy. The DNs were 3-0 and 10.6 pts/wk clear of the field
-      // in a winner-take-all league, and 26.0% was the model being right. The
-      // sheet is frozen, so this exemption stays until kdutta9/fantasy-book#2
-      // replaces the fixed ceiling — it cannot simply be deleted.
-      const ceiling = TITLE_CEILING_EXEMPT[`${leagueId} w${week}`] ?? 25;
-      assert.ok(rows[0].pct < ceiling, `favourite is ${rows[0].pct}% to win it — too confident for week ${week}`);
-      assert.ok(rows.at(-1).pct > 1, `longshot is ${rows.at(-1).pct}% — effectively off the board`);
-    });
+      test(`${leagueId} w1: the preseason title board is a twelve-horse race`, () => {
+        const rows = market("championship").rows;
+        assert.ok(rows[0].pct < 25, `favourite is ${rows[0].pct}% to win it — too confident for the preseason`);
+        assert.ok(rows.at(-1).pct > 1, `longshot is ${rows.at(-1).pct}% — effectively off the board`);
+      });
+    }
 
     test(`${leagueId} w${week}: expected wins average out over the schedule`, () => {
       // Every game has exactly one win in it, and a tie is half a win to each
