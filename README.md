@@ -59,7 +59,7 @@ specific panel; anything else becomes its own panel, titled as you wrote it.
 | `matchup:8-10` | attached to that row, by **roster id**, either order |
 | `punishment` · `punishment-paired` · `joint` · `lineups` | those panels |
 | `punishment-settled` | under the verdict in last week's punishment, SETTLED panel |
-| `season` | replaces the config `preview` on `&view=season` |
+| `season` | replaces the config `preview` on `&view=season`, under THE FUTURES BOARD (or frontmatter `futuresHeadline`) |
 | `## Anything Else` | a new panel titled ANYTHING ELSE |
 
 Roster ids and not team names, because names are display-only and change mid-season.

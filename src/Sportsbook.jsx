@@ -321,7 +321,8 @@ function Season({ sheet, prev, note }) {
     <>
       {written ? (
         <section className="bk-panel fb-preview" id="season-preview">
-          <h2 className="bk-panel-title">{note.meta.headline ?? "THE FUTURES BOARD"}</h2>
+          {/* Not the week's `headline`: that one is about the games, and this board is the season. */}
+          <h2 className="bk-panel-title">{note.meta.futuresHeadline ?? "THE FUTURES BOARD"}</h2>
           <Markdown text={written} className="fb-prose-cols" />
         </section>
       ) : (
