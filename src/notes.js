@@ -24,6 +24,7 @@ export const SLOTS = new Set([
   "card",
   "punishment",
   "punishment-paired",
+  "punishment-settled",
   "joint",
   "bench",
   "lineups",

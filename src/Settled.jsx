@@ -9,7 +9,7 @@
 
 import { Markdown } from "./markdown";
 
-export default function Settled({ settled, punishment, Panel, note, benchNote }) {
+export default function Settled({ settled, punishment, Panel, note, benchNote, punishmentNote }) {
   const { reportCard: card } = settled;
   return (
     <>
@@ -86,6 +86,7 @@ export default function Settled({ settled, punishment, Panel, note, benchNote })
               )}
             </p>
           )}
+          {punishmentNote && <Markdown text={punishmentNote} className="fb-panel-prose" />}
         </Panel>
 
         <Panel

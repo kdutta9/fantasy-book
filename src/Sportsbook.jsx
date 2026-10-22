@@ -221,6 +221,7 @@ function Week({ sheet, prev, note }) {
           Panel={Panel}
           note={slot(note, "settled")}
           benchNote={slot(note, "bench")}
+          punishmentNote={slot(note, "punishment-settled")}
         />
       )}
 

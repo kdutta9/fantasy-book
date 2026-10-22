@@ -58,6 +58,7 @@ specific panel; anything else becomes its own panel, titled as you wrote it.
 | `card` | replaces the default blurb under THE CARD |
 | `matchup:8-10` | attached to that row, by **roster id**, either order |
 | `punishment` · `punishment-paired` · `joint` · `lineups` | those panels |
+| `punishment-settled` | under the verdict in last week's punishment, SETTLED panel |
 | `season` | replaces the config `preview` on `&view=season` |
 | `## Anything Else` | a new panel titled ANYTHING ELSE |
 
