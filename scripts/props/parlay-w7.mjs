@@ -42,7 +42,7 @@ const LEGS = [
   ["Jonathan Taylor anytime TD", anytime("6813")],
   ["George Pickens anytime TD", anytime("8137")],
   ["Saquon Barkley over rushing yards", INPUTS.yardage],
-  ["Jakobi Lane over receiving yards", INPUTS.yardage],
+  ["Ja'Kobi Lane over receiving yards", INPUTS.yardage],
   ["Cam Skattebo over rushing yards", INPUTS.yardage],
   ["49ers moneyline", INPUTS.ninersML],
   ["Matthew Golden over receiving yards", INPUTS.yardage],
