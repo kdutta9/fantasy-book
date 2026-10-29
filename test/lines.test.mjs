@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, existsSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { readJson } from "../scripts/lib/json.mjs";
 import * as P from "../scripts/lib/paths.mjs";
 import { allLeagueIds } from "../scripts/pull.mjs";
@@ -15,9 +15,39 @@ import { fillFromWaivers, sigmaFor } from "../scripts/engine.mjs";
 // LEAGUE, not constants: LoOG starts nine (one FLEX, ten teams) and so runs
 // totals in the 230s where the twelve-team books run in the 260s. Hardcoding
 // either produced three false failures the moment a third league arrived. What
-// actually generalises is points PER STARTER — all three books sit between 12.3
-// and 14.4.
-const PER_STARTER = [11, 16];
+// actually generalises is points PER STARTER.
+//
+// The band itself was a constant too, [11, 16], and it broke in week 8: DKEnasty's
+// two worst rosters (Lane, Chris) projected 119.4 and 100.7, a 218.5 total, 10.93
+// a starter. Both match their teams' real averages, and 6 of the league's first 42
+// real matchups came in lower. So the band is now whatever the league has
+// actually scored: a total is a mean, and a mean in the outer 5% tails of real
+// matchup totals is a lineup summed wrong, not a bad week.
+const PER_STARTER_TAIL = 0.05;
+const MIN_RESULTS_FOR_BAND = 10; // matchups — before that, the tails are noise
+
+const quantile = (values, p) => {
+  const sorted = [...values].sort((x, y) => x - y);
+  const i = (sorted.length - 1) * p;
+  const lo = Math.floor(i);
+  return sorted[lo] + (sorted[Math.ceil(i)] - sorted[lo]) * (i - lo);
+};
+
+function realisedPerStarter(leagueId) {
+  const dir = dirname(P.leagueResultsFile(leagueId, 1));
+  if (!existsSync(dir)) return [];
+  const perStarter = [];
+  for (const file of readdirSync(dir).filter((f) => /^w\d+\.json$/.test(f))) {
+    const byMatchup = new Map();
+    for (const r of readJson(join(dir, file)).rosters) {
+      byMatchup.set(r.matchupId, [...(byMatchup.get(r.matchupId) ?? []), r]);
+    }
+    for (const [a, b] of byMatchup.values()) {
+      perStarter.push((a.points + b.points) / (a.starters.length + b.starters.length));
+    }
+  }
+  return perStarter;
+}
 
 // The price ceiling used to be a constant too, and it broke for the same reason
 // in week 2: 68% fair was measured off week 1, where no matchup was genuinely
@@ -57,6 +87,7 @@ const weeksOf = (id) =>
 
 for (const leagueId of allLeagueIds()) {
   const weeks = weeksOf(leagueId);
+  const realised = realisedPerStarter(leagueId);
   test(`${leagueId}: has at least one committed sheet`, () => assert.ok(weeks.length > 0));
 
   for (const week of weeks) {
@@ -84,12 +115,14 @@ for (const leagueId of allLeagueIds()) {
 
     const starters = book.lineups[0].players.length;
 
-    test(`${leagueId} w${week}: totals imply a plausible score per starter`, () => {
+    test(`${leagueId} w${week}: totals imply a plausible score per starter`, (t) => {
+      if (realised.length < MIN_RESULTS_FOR_BAND) return t.skip(`only ${realised.length} real matchups so far`);
+      const band = [quantile(realised, PER_STARTER_TAIL), quantile(realised, 1 - PER_STARTER_TAIL)];
       for (const m of book.matchups) {
         const perStarter = m.total.line / (2 * starters);
         assert.ok(
-          perStarter >= PER_STARTER[0] && perStarter <= PER_STARTER[1],
-          `${m.a.team} vs ${m.b.team} total ${m.total.line} is ${perStarter.toFixed(2)}/starter over ${starters} starters`
+          perStarter >= band[0] && perStarter <= band[1],
+          `${m.a.team} vs ${m.b.team} total ${m.total.line} is ${perStarter.toFixed(2)}/starter over ${starters} starters, outside the ${band[0].toFixed(2)}–${band[1].toFixed(2)} this league has actually scored`
         );
       }
     });

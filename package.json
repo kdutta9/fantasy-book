@@ -14,7 +14,7 @@
     "check-frozen": "node scripts/check-frozen.mjs",
     "set-proj": "node scripts/set-proj.mjs",
     "add-league": "node scripts/add-league.mjs",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "publish": "node scripts/publish.mjs",
     "deploy": "vite build && rsync -a --delete dist/ ../kdutta9.github.io/fantasy/ && cd ../kdutta9.github.io && git add fantasy && (git diff --cached --quiet || git commit -m 'Deploy: fantasy sportsbook') && git push"
   },
