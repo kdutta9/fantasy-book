@@ -72,7 +72,9 @@ export async function pull({ leagueIds, week, season, refreshSchedule = false, f
 
   if (refreshNames) await refreshLeagueNames({ leagueIds, configs, week, log });
 
-  const projected = await pullProjections({ season, week, keys: scoringKeyUnion(Object.values(settings)), forceInputs, log });
+  const keys = scoringKeyUnion(Object.values(settings));
+  const projected = await pullProjections({ season, week, keys, forceInputs, log });
+  await pullRestOfSeason({ season, week, keys, forceInputs, log });
   const playersDate = await pullPlayers({ leagueIds: everyId, configs, projected, log });
 
   for (const id of leagueIds) {
@@ -123,6 +125,53 @@ async function pullProjections({ season, week, keys, forceInputs, log }) {
   const seasonRows = await sleeper.fetchSeasonProjections(season, sleeper.SCORING_POSITIONS);
   writeJson(P.seasonProjWeekFile(season, week), slimProjections(seasonRows, keys));
   return Object.keys(slim);
+}
+
+// The last NFL week any league's season sim reaches: regular season through 14,
+// then a three-round bracket.
+const LAST_SIMULATED_WEEK = 17;
+
+// Each later week's projection, averaged per player over the weeks he is
+// projected to play (pts_ppr > 0, so a bye is not a zero). Stat by stat, so
+// every league still applies its own scoring. Written once: like every other
+// input to a posted week it is frozen the moment it exists, and a new input
+// has no earlier copy for a sheet to have been built against.
+async function pullRestOfSeason({ season, week, keys, forceInputs, log }) {
+  const file = P.rosProjFile(season, week);
+  if (!forceInputs && existsSync(file)) {
+    log(`rest-of-season ${season} w${week}: already pulled — left untouched (--force-inputs to override)`);
+    return;
+  }
+  const later = [];
+  for (let w = week + 1; w <= LAST_SIMULATED_WEEK; w++) later.push(w);
+  const weeks = await Promise.all(
+    later.map(async (w) => {
+      const [skill, kicking] = await Promise.all([
+        sleeper.fetchProjections(season, w, ["QB", "RB", "WR", "TE"]),
+        sleeper.fetchProjections(season, w, ["K", "DEF"]),
+      ]);
+      return slimProjections([...skill, ...kicking.filter((r) => r.player?.position !== "P")], keys);
+    })
+  );
+  const sums = {};
+  const games = {};
+  for (const slim of weeks) {
+    for (const id in slim) {
+      if (!(slim[id].pts_ppr > 0)) continue;
+      const { gp, ...stats } = slim[id];
+      games[id] = (games[id] ?? 0) + 1;
+      const acc = (sums[id] ??= {});
+      for (const k in stats) acc[k] = (acc[k] ?? 0) + stats[k];
+    }
+  }
+  const perGame = {};
+  for (const id of Object.keys(sums).sort()) {
+    perGame[id] = Object.fromEntries(
+      Object.keys(sums[id]).sort().map((k) => [k, Math.round((sums[id][k] / games[id]) * 1000) / 1000])
+    );
+  }
+  log(`rest-of-season ${season} w${week}: weeks ${later[0]}–${later.at(-1)} → ${Object.keys(perGame).length} players`);
+  writeJson(file, perGame);
 }
 
 async function pullPlayers({ leagueIds, configs, projected, log }) {

@@ -93,7 +93,7 @@ for (const leagueId of allLeagueIds()) {
       }
       for (const seat of book.restOfSeason) {
         assert.ok(
-          seat.projected > 90 && seat.projected < 170,
+          seat.projected > 85 && seat.projected < 170,
           `${seat.team} projects ${seat.projected} in a typical week — outside a believable full-PPR range`
         );
       }

@@ -27,6 +27,11 @@ export const projOverridesFile = (season, week) => join(projDir(season), `w${wee
 // after this split. Nothing new is ever written to it.
 export const seasonProjFile = (season) => join(projDir(season), "season.json");
 export const seasonProjWeekFile = (season, week) => join(projDir(season), `season-w${week}.json`);
+// From week 9 the rest-of-season rate comes from Sleeper's *weekly* projections
+// for every later week, averaged per player, because the season endpoint is
+// never updated in-season: a backup promoted to starter keeps his preseason
+// backup total all year (Kirk Cousins, 2.2 a game, in week 9). Already per-game.
+export const rosProjFile = (season, week) => join(projDir(season), `ros-w${week}.json`);
 export const playersFile = (date) => join(DATA, "players", `${date}.json`);
 export const playersDir = join(DATA, "players");
 export const statePath = join(DATA, "state.json");

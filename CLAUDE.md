@@ -82,6 +82,13 @@ Do not modify anything in `../worldcup`. It is frozen and its build guards must 
    writes `season-w<W>.json`; `build-book` prefers it and falls back to the un-versioned
    file, which is the copy week 1 was posted against and must never be written again.
 
+   **From week 9 the season endpoint is not used at all.** Sleeper never updates it in-season:
+   in week 9 it still had Kirk Cousins, a starter projected 17.2, at his preseason backup total
+   of 2.2 a game, which made the man who'd just won the milk-mile favourite. `pull` now writes
+   `ros-w<W>.json`, each player's mean weekly projection over weeks W+1–17 (weeks he's projected
+   to play), once and never again, and `build-book` reads it from `ROS_FROM_WEEKLY_SINCE_WEEK`.
+   Weeks 1–8 still read their `season-w<W>.json`.
+
 9. **A results file is written once and carries no timestamp.** `leagues/<id>/results/w<N>.json`
    holds the final scores that sheet W+1 settles against, so it is an ordinary frozen
    input. `pull` only fetches weeks strictly before the current one (a week in progress has

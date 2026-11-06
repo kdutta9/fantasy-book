@@ -6,6 +6,7 @@
 //   public/data/leagues/<id>/{weeks/w<W>,schedule,bracket}.json
 //   public/data/projections/<season>/w<W>.json  (+ .overrides.json)
 //   public/data/projections/<season>/season-w<W>.json  (season.json for week 1)
+//   public/data/projections/<season>/ros-w<W>.json     (instead, from week 9)
 //   public/data/players/<playersDate>.json      (named by the week file)
 //
 // plus, from week 2 on, this same league's own settled history (settle.mjs):
@@ -38,6 +39,12 @@ const CROSSOVER_THROUGH_WEEK = 1; // the last week a sheet carried a `crossover`
 // than as a zero (engine.mjs, fillFromWaivers). Weeks 1–2 were posted with
 // forfeits and stay that way.
 const WAIVER_FILL_SINCE_WEEK = 3;
+// The first week the rest-of-season rate is the mean of Sleeper's weekly
+// projections for every later week (ros-w<W>.json) instead of the season
+// endpoint over 18. The season endpoint is never updated in-season, so in week 9
+// it still had Kirk Cousins, a starter projected 17.2, as a 2.2-a-game backup.
+// Weeks 1–8 were posted against the season files and stay that way.
+const ROS_FROM_WEEKLY_SINCE_WEEK = 9;
 
 export function buildBook({ leagueId, week, sims = SIMS }) {
   const config = readJson(P.leagueConfigPath(leagueId));
@@ -64,9 +71,10 @@ export function buildBook({ leagueId, week, sims = SIMS }) {
   // through to the frozen season.json it was posted against. A week-scoped file
   // wins wherever one exists — same shape as `latestSince`: the change in what
   // this input means is gated, never switched on globally.
-  const perGame = perGameProjections(
-    readJsonIf(P.seasonProjWeekFile(season, week)) ?? readJson(P.seasonProjFile(season))
-  );
+  const perGame =
+    week >= ROS_FROM_WEEKLY_SINCE_WEEK
+      ? readJson(P.rosProjFile(season, week))
+      : perGameProjections(readJsonIf(P.seasonProjWeekFile(season, week)) ?? readJson(P.seasonProjFile(season)));
 
   const positionOf = (id) => players[id]?.p ?? null;
   const waiverFill = week >= WAIVER_FILL_SINCE_WEEK;
