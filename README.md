@@ -64,6 +64,10 @@ specific panel; anything else becomes its own panel, titled as you wrote it.
 
 Roster ids and not team names, because names are display-only and change mid-season.
 
+Custom panels render at the bottom of the card. Add `panels: top` to a week's frontmatter to put
+them straight under the lede instead (week 11's specials). It's per week, so posted weeks keep
+their layout.
+
 **A week never inherits the previous week's prose.** No file, no words — the same rule the
 generated boards follow, and the reason worldcup's "prices reprice themselves, the words do
 not" cannot happen here.

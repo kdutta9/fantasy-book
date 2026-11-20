@@ -204,6 +204,8 @@ function Head({ sheet, weeks, cur, onNav, page }) {
 
 function Week({ sheet, prev, note }) {
   const { punishment } = sheet;
+  // Opt-in per week, so moving a week's specials up never reshuffles a posted one.
+  const panelsOnTop = note?.meta.panels === "top";
   return (
     <>
       {slot(note, "lede") && (
@@ -213,6 +215,8 @@ function Week({ sheet, prev, note }) {
           {note.meta.byline && <p className="fb-byline">{note.meta.byline}</p>}
         </section>
       )}
+
+      {panelsOnTop && <NotePanels note={note} />}
 
       {sheet.settled && (
         <Settled
@@ -303,14 +307,19 @@ function Week({ sheet, prev, note }) {
 
       {/* A heading the renderer does not recognise as a slot becomes its own
           panel, titled as written. Adding a one-off section to a week is typing
-          a heading in the .md file, never a change in here. */}
-      {note?.panels.map((panel) => (
-        <Panel key={panel.title} title={panel.title.toUpperCase()}>
-          <Markdown text={panel.text} className="fb-prose-cols" />
-        </Panel>
-      ))}
+          a heading in the .md file, never a change in here. They sit at the
+          bottom unless the week's frontmatter says `panels: top`. */}
+      {!panelsOnTop && <NotePanels note={note} />}
     </>
   );
+}
+
+function NotePanels({ note }) {
+  return note?.panels.map((panel) => (
+    <Panel key={panel.title} title={panel.title.toUpperCase()}>
+      <Markdown text={panel.text} className="fb-prose-cols" />
+    </Panel>
+  ));
 }
 
 // --- The season page (?book=<id>&view=season) --------------------------------
